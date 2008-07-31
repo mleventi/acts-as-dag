@@ -1,0 +1,83 @@
+= Acts_as_dag
+
+Acts As Dag, short for Acts As Directed Acyclic Graph, is a plugin which allows you to represent DAG hierarchy using your ActiveRecord models. 
+
+== Why do I need this?
+
+Say you have been using one of the many great plugins that allow for Tree hierarchy like: acts_as_tree or acts_as_nested_set, acts_as_better_nested_set, etc. Yet, you feel something is missing. Tree's are just not good enough. You want to allow each record to have multiple parent objects within a hierarchy as well as multiple children. Hence trees are not good enough. In short this is the main functionality of acts_as_dag.
+
+== Features
+
+* DAG graph functionality
+* parents, children, ancestors, and descendents has_many associations
+* STI support
+* Polymorphic graphs (almost)
+* Association injection for nodes
+* O(1) lookups, no breath or depth first searching
+
+== Installation
+
+script/plugin install git://github.com/mleventi/acts-as-dag.git
+
+== Usage
+
+You need to add: acts_as_dag_links to the model that is going to represent links within the graph. This takes several optional options and one required option.
+
+Required:
+	for => 'ClassName' the class that uses the links
+Optional:
+	polymorphic => (true,false) Whether the graph is polymorphic. See the section below
+	ancestor_id_column => "ancestor_id" by default. Column to use for the ancestor key
+	descendent_id_column => "descendent_id" by default. Column to use for the descendent key
+	direct_column => "direct" by default. Boolean column that represents whether a link is direct, and therefore a graph edge.
+	count_column => "count" by default. Integer column that represents the number of ways to get from source to destination on the link.
+	prefix => "" by default. Prefix added to the injected associations. Useful if you want a model to be in multiple graphs.
+
+Polymorphic Required:
+	for => Hash. This hash represents the parent child polymorphic links. The key is the parent and the value is an array of children. See the examples below.
+	
+Polymorphic Optional:
+	ancestor_type_column => "ancestor_type" by default. Column to use for the ancestor type
+	descendent_type_column => "descendent_type" by default. Column to use for the descendent type
+	
+== Examples
+
+Example 1
+
+create_table :nodes do |t|
+	t.string :name
+end
+
+create_table :links do |t|
+	t.integer :ancestor_id
+	t.integer :descendent_id
+	t.boolean :direct
+	t.integer :count
+end
+
+class Node < ActiveRecord::Base
+	#receives the following by injection you don't have to specify them manually. They are prefixed by prefix + '_' if prefix is not ''
+	#has_many :links_as_parent
+	#has_many :links_as_child
+	#has_many :links_as_ancestor
+	#has_many :links_as_descendent
+	#has_many :parents
+	#has_many :children
+	#has_many :ancestors
+	#has_many :descendents
+end
+
+class Link < ActiveRecord::Base
+	acts_as_dag_links :for => 'Node'
+end
+
+== Algorithm and Structure
+
+This section explains how the DAG is represented in the database. To start, this algorithm is data heavy. Instead of having recursive queries into the link table I chose to store all possible paths. Hence if there is a way to get from A C by traveling through B their is an A to C link record. This allows for an O(1) constant time lookup, assuming keys. The alternative was not to store an A to C link and only store a A to B and B to C link. Yet then it is not immediately obvious whether there is a path from A to C. To find such a path an exhaustive search has to be undertaken which could traverse the whole graph. It is also much harder to determine whether cycles are caused by an insert. Hence acts_as_dag should be thought of as a cousin of acts_as_nested_set, not as a cousin of acts_as_tree. 
+
+The downside to the implementation is that inserts and deletes take longer as the graph has to be corrected. The plugin will not allow you to muck the graph up, as long as you don't touch internal_count. 
+
+
+
+
+
