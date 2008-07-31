@@ -5,6 +5,7 @@ module ActiveRecord
         base.extend(SingletonMethods)
       end
       module SingletonMethods
+        #Sets up a model to act as dag links for models specified under the :for option.
         def acts_as_dag_links(options = {})
           conf = {
             :ancestor_id_column => 'ancestor_id',
@@ -183,7 +184,7 @@ module ActiveRecord
         end
       end
       
-      #methods that show the columns where DAG is polymorphic
+      #Methods that show the columns for polymorphic DAGs
       module PolyColumns
         def ancestor_type_column_name
           acts_as_dag_options[:ancestor_type_column]
@@ -194,7 +195,7 @@ module ActiveRecord
         end
       end
       
-      #methods that show columns
+      #Methods that show columns
       module Columns
         def ancestor_id_column_name
           acts_as_dag_options[:ancestor_id_column]
@@ -217,9 +218,9 @@ module ActiveRecord
         end
       end
       
-      #Class Methods on the Edge Model for Polymorphic DAGS
+      #Contains class methods that extend the link model for polymorphic DAGs
       module PolyEdgeClassMethods
-        #builds a hash describing the edge
+        #Builds a hash that describes a link from a source and a sink
         def conditions_for(source,sink)
           {
             ancestor_id_column_name => source.id,
@@ -229,22 +230,28 @@ module ActiveRecord
           }
         end
       end
+      #Contains nested classes in the link model for polymorphic DAGs 
       module PolyEdgeClasses
-        class EndPoint   
+        #Encapsulates the necessary information about a graph node
+        class EndPoint
+          #Does the endpoint match a model or another endpoint   
           def matches?(other)
             return (self.id == other.id) && (self.type == other.type) if other.is_a?(EndPoint)
             return (self.id == other.id) && (self.type == other.class.to_s)
           end
           
+          #Factory Construction method that creates an EndPoint instance from a model
           def self.from_resource(resource)
             self.new(resource.id,resource.class.to_s)
           end
           
+          #Factory Construction method that creates an EndPoint instance from a model if necessary
           def self.from(obj)
             return obj if obj.kind_of?(EndPoint)
             return self.from_resource(obj)
           end
 
+          #Initializes the EndPoint instance with an id and type
           def initialize(id,type)
             @id = id
             @type = type
@@ -252,19 +259,27 @@ module ActiveRecord
           
           attr_reader :id, :type
         end
+        
+        #Encapsulates information about the source of a link
         class Source < EndPoint
+          #Factory Construction method that generates a source from a link
           def self.from_edge(edge)
             self.new(edge.ancestor_id,edge.ancestor_type)
           end
         end
+        
+        #Encapsulates information about the sink (destination) of a link
         class Sink < EndPoint
+          #Factory Construction method that generates a sink from a link
           def self.from_edge(edge)
             self.new(edge.descendent_id,edge.descendent_type)
           end
         end
       end
       
+      #Contains class methods that extend the link model for a nonpolymorphic DAG
       module NonPolyEdgeClassMethods
+        #Builds a hash that describes a link from a source and a sink
         def conditions_for(source,sink)
           {
             ancestor_id_column_name => source.id,
@@ -272,42 +287,54 @@ module ActiveRecord
             }
         end
       end
-      module NonPolyEdgeClasses     
+      #Contains nested classes in the link model for a nonpolymorphic DAG
+      module NonPolyEdgeClasses 
+        #Encapsulates the necessary information about a graph node    
         class EndPoint
+          #Does an endpoint match another endpoint or model instance
           def matches?(other)
             return (self.id == other.id)
           end
           
+          #Factory Construction method that creates an endpoint from a model
           def self.from_resource(resource)
             self.new(resource.id)
           end
           
+          #Factory Construction method that creates an endpoint from a model if necessary
           def self.from(obj)
             return obj if obj.kind_of?(EndPoint)
             return self.from_resource(obj)
           end
           
+          #Initializes an endpoint based on an Id
           def initialize(id)
             @id = id
           end
           
           attr_reader :id
         end
+        
+        #Encapsulates information about the source of a link
         class Source < EndPoint
+          #Factory Construction method creates a source instance from a link
           def self.from_edge(edge)
             return self.new(edge.ancestor_id)
           end
         end
+        #Encapsulates information about the sink of a link
         class Sink < EndPoint
+          #Factory Construction method creates a sink instance from a link
           def self.from_edge(edge)
             return self.new(edge.descendent_id)
           end
         end
       end
       
+      #Class methods that extend the link model for both polymorphic and nonpolymorphic graphs
       module EdgeClassMethods
         
-        #returns a new edge between two points
+        #Returns a new edge between two points
         def build_edge(ancestor,descendent)
           source = self::EndPoint.from(ancestor)
           sink = self::EndPoint.from(descendent)
@@ -317,6 +344,7 @@ module ActiveRecord
           return path
         end
         
+        #Finds an edge between two points. Must be direct.
         def find_edge(ancestor,descendent)
           source = self::EndPoint.from(ancestor)
           sink = self::EndPoint.from(descendent)
@@ -324,6 +352,7 @@ module ActiveRecord
           return edge
         end
         
+        #Finds a link between two points.
         def find_link(ancestor,descendent)
           source = self::EndPoint.from(ancestor)
           sink = self::EndPoint.from(descendent)
@@ -331,12 +360,14 @@ module ActiveRecord
           return link
         end 
         
+        #Finds or builds an edge between two points.
         def find_or_build_edge(ancestor,descendent)
           edge = self.find_edge(ancestor,descendent)
           return edge unless edge.nil?
           return build_edge(ancestor,descendent)
         end
         
+        #Creates an edge between two points using save
         def create_edge(ancestor,descendent)
           link = self.find_link(ancestor,descendent)
           if link.nil?
@@ -348,6 +379,7 @@ module ActiveRecord
           end
         end
         
+        #Creates an edge between two points using save! Returns created edge
         def create_edge!(ancestor,descendent)
           link = self.find_link(ancestor,descendent)
           if link.nil?
@@ -361,22 +393,33 @@ module ActiveRecord
           end
         end
         
+        #Alias for create_edge
         def connect(ancestor,descendent)
             return self.create_edge(ancestor,descendent)
         end
         
+        #Alias for create_edge!
         def connect!(ancestor,descendent)
             return self.create_edge!(ancestor,descendent)
         end
         
+        #Determines if a link exists between two points
         def connected?(ancestor,descendent)
           return !self.find_link(ancestor,descendent).nil?
         end
         
-        def direct?(ancestor,descendent)
+        #Determines if an edge exists between two points
+        def edge?(ancestor,descendent)
           return !self.find_edge(ancestor,descendent).nil?
+        end
+        
+        #Alias for edge
+        def direct?(ancestor,descendent)
+          return self.edge?(ancestor,descendent)
         end        
       end
+      
+      #Instance methods included into link model for a polymorphic DAG
       module PolyEdgeInstanceMethods
         def ancestor_type
           return self[ancestor_type_column_name]
@@ -386,14 +429,18 @@ module ActiveRecord
           return self[descendent_type_column_name]
         end
       end
+      
+      #Instance methods included into the link model for a nonpolymorphic DAG
       module NonPolyEdgeInstanceMethods
       end
+      
+      #Instance methods included into the link model for polymorphic and nonpolymorphic DAGs
       module EdgeInstanceMethods
         
         attr_accessor :do_not_perpetuate
         
-        #validation on create
-        def validate_on_create
+        #Validations on model instance creation. Ensures no duplicate links, no cycles, and correct count and direct attributes
+        def validate_on_create 
           #make sure no duplicates
           if self.class.find_link(self.source,self.sink)
             self.errors.add_to_base('Link already exists between these points')
@@ -418,7 +465,7 @@ module ActiveRecord
           end          
         end
         
-        #validation on update
+        #Validations on update. Makes sure that something changed, that not making a lonely link indirect, and count is correct.
         def validate_on_update
           unless self.changed?
             self.errors.add_to_base('No changes')
@@ -435,17 +482,18 @@ module ActiveRecord
           end
         end
         
+        #Fill default direct and count values if necessary. In place of after_initialize method
         def fill_defaults
           self[direct_column_name] = true if self[direct_column_name].nil?
           self[count_column_name] = 0 if self[count_column_name].nil?
         end
         
-        #whether the edge can be destroyed
+        #Whether the edge can be destroyed
         def destroyable?
           (self.count == 0) || (self.direct? && self.count == 1)
         end
         
-        #raises an exception if the edge is not destroyable
+        #Raises an exception if the edge is not destroyable. Otherwise makes the edge indirect before destruction to cleanup graph.
         def destroyable!
           raise ActiveRecord::ActiveRecordError, 'Cannot destroy this edge' unless destroyable?
           #this triggers rewiring on destruction via perpetuate
@@ -455,7 +503,7 @@ module ActiveRecord
           return true
         end
         
-        #analyzes the changes in the object and continues accordingly
+        #Analyzes the changes in a model instance and rewires as necessary.
         def perpetuate
           #flag set by links that were modified in association
           return true if self.do_not_perpetuate
@@ -471,71 +519,66 @@ module ActiveRecord
           end
         end
         
-        #id of the ancestor
+        #Id of the ancestor
         def ancestor_id
           return self[ancestor_id_column_name]
         end
         
-        #id of the descendent
+        #Id of the descendent
         def descendent_id
           return self[descendent_id_column_name]
         end
         
-        #count of the edge, ie the edge exists in X ways
+        #Count of the edge, ie the edge exists in X ways
         def count
           return self[count_column_name]
         end
         
-        #changes the count of the edge will raise an exception if saved with a manually changed count
+        #Changes the count of the edge. DO NOT CALL THIS OUTSIDE THE PLUGIN
         def internal_count=(val)
           self[count_column_name] = val      
         end
         
-        #whether the path is edge, ie manually created
+        #Whether the link is direct, ie manually created
         def direct?
           return self[direct_column_name]
         end
         
-        #makes the link edge
+        #Makes the link direct, ie an edge
         def make_direct
           self[direct_column_name] = true
         end
         
-        #makes the link 
+        #Makes an edge indirect, ie a link. 
         def make_indirect
           self[direct_column_name] = false
         end
         
-        
-        
-        #source of the edge
+        #Source of the edge, creates if necessary
         def source
           @source = self.class::Source.from_edge(self) if @source.nil?
           return @source
         end
         
-        #destination of the edge
+        #Sink (destination) of the edge, creates if necessary
         def sink
           @sink = self.class::Sink.from_edge(self) if @sink.nil?
           return @sink
         end
         
-        #all edges that end at the source
+        #All links that end at the source
         def links_to_source
           self.class.with_descendent_point(self.source)
         end
         
-        #all edges that start from the sink
+        #all links that start from the sink
         def links_from_sink
           self.class.with_ancestor_point(self.sink)
         end
         
-         
-        
-        
         protected
         
-        #changes on a wire based on the count (destroy! or save!) (should not be called outside this plugin)        
+        #Changes on a wire based on the count (destroy! or save!) (should not be called outside this plugin)        
         def push_associated_modification!(edge)
           raise ActiveRecord::ActiveRecordError, 'Cannot modify ourself in this way' if edge == self
           edge.do_not_perpetuate = true
@@ -546,7 +589,7 @@ module ActiveRecord
           end
         end
         
-        #updates the wiring of edges that dependent on the current one
+        #Updates the wiring of edges that dependent on the current one
         def rewire_crossing(above_leg,below_leg)
           if above_leg.count_changed?
             was = above_leg.count_was
@@ -580,7 +623,7 @@ module ActiveRecord
           return bridging_leg                     
         end
                   
-        #find the edges that need to be updated
+        #Find the edges that need to be updated
         def wiring
           source = self.source
           sink = self.sink
