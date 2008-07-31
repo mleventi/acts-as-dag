@@ -1,10 +1,18 @@
-= Acts_as_dag
+= Acts As Dag
 
 Acts As Dag, short for Acts As Directed Acyclic Graph, is a plugin which allows you to represent DAG hierarchy using your ActiveRecord models. 
 
-== Why do I need this?
+== Basic Information
 
-Say you have been using one of the many great plugins that allow for Tree hierarchy like: acts_as_tree or acts_as_nested_set, acts_as_better_nested_set, etc. Yet, you feel something is missing. Tree's are just not good enough. You want to allow each record to have multiple parent objects within a hierarchy as well as multiple children. Hence trees are not good enough. In short this is the main functionality of acts_as_dag.
+Say you have been using one of the many great plugins that allow for Tree hierarchy like: acts_as_tree or acts_as_nested_set, acts_as_better_nested_set, etc. Yet, you feel something is missing. Tree's are just not good enough. You want to allow each record to have multiple parent objects within a hierarchy as well as multiple children. Then you are going to need a DAG instead of a tree, and thats were this plugin becomes useful.
+
+=== What's a DAG?
+
+http://en.wikipedia.org/wiki/Directed_acyclic_graph
+
+=== Aren't there plugins for this already?
+
+Yes, but I think they aren't as fast or feature filled. Flogic has a good acts_as_dag plugin on github which would be similar to acts_as_tree.
 
 == Features
 
@@ -12,8 +20,13 @@ Say you have been using one of the many great plugins that allow for Tree hierar
 * parents, children, ancestors, and descendents has_many associations
 * STI support
 * Polymorphic graphs (almost)
-* Association injection for nodes
+* Association injection for graph nodes
 * O(1) lookups, no breath or depth first searching
+* O(x*y) insert, update and delete, where x & y are the number of ancestors and descendents of a node.
+
+== Requirements
+
+This uses named_scope so your going to need Rails 2.1 or above.
 
 == Installation
 
@@ -21,63 +34,99 @@ script/plugin install git://github.com/mleventi/acts-as-dag.git
 
 == Usage
 
-You need to add: acts_as_dag_links to the model that is going to represent links within the graph. This takes several optional options and one required option.
+This plugin requires two or more models to be used correctly. One model represents the edges for a graph. The other models can represent the nodes. Usage is a bit different if you decided to have a polymorphic graph with many types of nodes or a basic graph where all the nodes are of the same type.
 
-Required:
-	for => 'ClassName' the class that uses the links
-Optional:
-	polymorphic => (true,false) Whether the graph is polymorphic. See the section below
-	ancestor_id_column => "ancestor_id" by default. Column to use for the ancestor key
-	descendent_id_column => "descendent_id" by default. Column to use for the descendent key
-	direct_column => "direct" by default. Boolean column that represents whether a link is direct, and therefore a graph edge.
-	count_column => "count" by default. Integer column that represents the number of ways to get from source to destination on the link.
-	prefix => "" by default. Prefix added to the injected associations. Useful if you want a model to be in multiple graphs.
+=== Basic Graphs
 
-Polymorphic Required:
-	for => Hash. This hash represents the parent child polymorphic links. The key is the parent and the value is an array of children. See the examples below.
-	
-Polymorphic Optional:
-	ancestor_type_column => "ancestor_type" by default. Column to use for the ancestor type
-	descendent_type_column => "descendent_type" by default. Column to use for the descendent type
-	
-== Examples
+For a basic non-polymorphic graph you need to call acts_as_dag_links as a singleton class instance method in the model representing your graph links. This method takes a hash of options as its only parameter. The only required parameter is :for which should indicated the class_name for the model that will act as a graph node.
 
-Example 1
+==== Model Example
 
-create_table :nodes do |t|
-	t.string :name
+class Link < ActiveRecord::Base
+	acts_as_dag_links :for => 'Node'
 end
 
-create_table :links do |t|
+class Node < ActiveRecord::Base
+end
+
+==== Optional Parameters
+
+- :ancestor_id_column. By default, 'ancestor_id', column to use for the ancestor reference
+- :descendent_id_column. By default, 'descendent_id', column to use for the descendent reference
+- :direct_column. By default, 'direct', boolean column that represents whether the link is an edge (direct)
+- :count_column. By default, 'count', represents the number of ways to get from A to B.
+- :polymorphic. By default, false, If you want polymorphic graphs see below.
+
+==== Migration Example
+
+create_table :links, do |t|
 	t.integer :ancestor_id
 	t.integer :descendent_id
 	t.boolean :direct
 	t.integer :count
 end
 
-class Node < ActiveRecord::Base
-	#receives the following by injection you don't have to specify them manually. They are prefixed by prefix + '_' if prefix is not ''
-	#has_many :links_as_parent
-	#has_many :links_as_child
-	#has_many :links_as_ancestor
-	#has_many :links_as_descendent
-	#has_many :parents
-	#has_many :children
-	#has_many :ancestors
-	#has_many :descendents
-end
+=== Polymorphic Graphs
+
+Note: This is still in beta, Everything is stable except for the injection of has_many associations. So you can use the class methods on the Link class to find out whats related to what and to add ties
+
+You get a polymorphic graph by setting the :polymorphic option to true. This allows different ActiveRecord models to be the nodes on the graph. Having a polymorphic graph changes the :for option to a Hash. This hash represents the parent child relationships between the ActiveRecord models. Note that you can have bidirectional relationships (parent -> child, child -> parent) if you wish. In the hash each key represents a parent and the value should be an array of children. The key, and each value in the array should represent a model class_name.
+
+==== Model Example
 
 class Link < ActiveRecord::Base
-	acts_as_dag_links :for => 'Node'
+	acts_as_dag_links :polymorphic => true, :for => {'AlphaNode' => ['AlphaNode','BetaNode','GammaNode'], 
+	'BetaNode' => ['AlphaNode','BetaNode','GammaNode']}
 end
 
-== Algorithm and Structure
+class AlphaNode < ActiveRecord::Base
+end
 
-This section explains how the DAG is represented in the database. To start, this algorithm is data heavy. Instead of having recursive queries into the link table I chose to store all possible paths. Hence if there is a way to get from A C by traveling through B their is an A to C link record. This allows for an O(1) constant time lookup, assuming keys. The alternative was not to store an A to C link and only store a A to B and B to C link. Yet then it is not immediately obvious whether there is a path from A to C. To find such a path an exhaustive search has to be undertaken which could traverse the whole graph. It is also much harder to determine whether cycles are caused by an insert. Hence acts_as_dag should be thought of as a cousin of acts_as_nested_set, not as a cousin of acts_as_tree. 
+class BetaNode < ActiveRecord::Base
+end
 
-The downside to the implementation is that inserts and deletes take longer as the graph has to be corrected. The plugin will not allow you to muck the graph up, as long as you don't touch internal_count. 
+class GammaNode < ActiveRecord::Base
+end
 
+In the above example there are three node types: AlphaNode, BetaNode, and GammaNode. AlphaNodes and BetaNodes can be parents of everybody including themselves. GammaNodes can only be children which effectively makes them leaves on the graph. Note: that these type hierarchies are not yet enforced in validations. They only serve to determine which associations are injected into each class. This will be fixed in the future.
 
+==== Optional Parameters
 
+Along with all the optional parameters for basic graphs there are:
 
+- :ancestor_type_column. By default, 'ancestor_type', column to use for the ancestor type reference
+- :descendent_type_column. By default, 'descendent_type', column to use for the descendent type reference
+
+==== Migration Example
+
+create_table :links, do |t|
+	t.integer :ancestor_id
+	t.string  :ancestor_type
+	t.integer :descendent_id
+	t.string  :descendent_type
+	t.boolean :direct
+	t.integer :count
+end
+
+== The Algorithm
+
+This section briefly explains how the plugin works. For a really detailed understanding look at the perpetuate function which is used to fix up the graph when its changed.
+
+To start there is some terminology:
+
+- Node is a point on the graph
+- Edge is a direct connection between two nodes.
+- Link is a connection using one or more edges.
+
+This implementation works by storing every possible link as a record in the database. The links originate at the ancestor and end at the descendent. Hence checking if X is a descendent of Y can be accomplished in one SQL query. Likewise finding all descendents or ancestors of Y can also be done in a single query. There are simple queries that don't use recursive stored procedures that you would need with a parent child model. Hence getting information out of the database is really fast. You can also find out the number of unique ways X is connected to Y and whether it has a direct connection. This allows the finding of all parents or children of a node with one query.
+
+The downside to this implementation, besides the large storage requirements, is that updating the graph by adding or removing nodes or edges is not trivial. When edges are added a sort of cross product between the parent and child nodes ancestors and descendents is done that updates the counts and creates new links as necessary. Hence the complexity of an update, add, or deletion, matters heavily on how your graph is arranged and what nodes you are connecting.
+
+== Thanks
+
+Whoever did the awesome_nested_set plugin. This is my first plugin and I used that as a base for how to design a plugin. The Rails Way was also a great book that I essentially taught me Rails. 
+
+== Credit
+
+Algorithm and Plugin designed by Matthew Leventi (first letter of my first name followed by my last name @gmail.com). Im open to questions, very open to bugs, and even more receptive of bug fixes. I am also currently (August 2008) looking for a job just having graduated University of Rochester.
 
