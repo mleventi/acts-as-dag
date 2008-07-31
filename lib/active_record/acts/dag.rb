@@ -1,5 +1,3 @@
-require 'has_many_polymorphs'
-
 module ActiveRecord
   module Acts
     module Dag

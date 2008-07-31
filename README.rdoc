@@ -124,9 +124,9 @@ The downside to this implementation, besides the large storage requirements, is 
 
 == Thanks
 
-Whoever did the awesome_nested_set plugin. This is my first plugin and I used that as a base for how to design a plugin. The Rails Way was also a great book that I essentially taught me Rails. 
+Whoever did the awesome_nested_set plugin. This is my first plugin and I used that as a base. The Rails Way was also a great book that essentially taught me Rails. 
 
 == Credit
 
-Algorithm and Plugin designed by Matthew Leventi (first letter of my first name followed by my last name @gmail.com). Im open to questions, very open to bugs, and even more receptive of bug fixes. I am also currently (August 2008) looking for a job just having graduated University of Rochester.
+Algorithm and plugin designed by Matthew Leventi (first letter of my first name followed by my last name @gmail.com). Im open to questions, very open to bugs, and even more receptive of bug fixes. I am also currently (August 2008) looking for a job just having graduated University of Rochester.
 
