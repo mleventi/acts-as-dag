@@ -17,6 +17,7 @@ module ActiveRecord
             :prefix => ''}
           conf.update(options)
           
+          #polymorphic
           if conf[:polymorphic]
             raise ActiveRecord::ActiveRecordError, 'Need "for' if conf[:for].nil?
             raise ActiveRecord::ActiveRecordError, 'Need "for" as hash' unless conf[:for].is_a?(Hash)
