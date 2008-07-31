@@ -30,7 +30,7 @@ This uses named_scope so your going to need Rails 2.1 or above.
 
 == Installation
 
-script/plugin install git://github.com/mleventi/acts-as-dag.git
+	script/plugin install git://github.com/mleventi/acts-as-dag.git
 
 == Usage
 
@@ -42,12 +42,12 @@ For a basic non-polymorphic graph you need to call acts_as_dag_links as a single
 
 ==== Model Example
 
-class Link < ActiveRecord::Base
-	acts_as_dag_links :for => 'Node'
-end
+	class Link < ActiveRecord::Base
+		acts_as_dag_links :for => 'Node'
+	end
 
-class Node < ActiveRecord::Base
-end
+	class Node < ActiveRecord::Base
+	end
 
 ==== Optional Parameters
 
@@ -59,12 +59,12 @@ end
 
 ==== Migration Example
 
-create_table :links, do |t|
-	t.integer :ancestor_id
-	t.integer :descendent_id
-	t.boolean :direct
-	t.integer :count
-end
+	create_table :links, do |t|
+		t.integer :ancestor_id
+		t.integer :descendent_id
+		t.boolean :direct
+		t.integer :count
+	end
 
 === Polymorphic Graphs
 
@@ -74,19 +74,19 @@ You get a polymorphic graph by setting the :polymorphic option to true. This all
 
 ==== Model Example
 
-class Link < ActiveRecord::Base
-	acts_as_dag_links :polymorphic => true, :for => {'AlphaNode' => ['AlphaNode','BetaNode','GammaNode'], 
-	'BetaNode' => ['AlphaNode','BetaNode','GammaNode']}
-end
+	class Link < ActiveRecord::Base
+		acts_as_dag_links :polymorphic => true, :for => {'AlphaNode' => ['AlphaNode','BetaNode','GammaNode'], 
+			'BetaNode' => ['AlphaNode','BetaNode','GammaNode']}
+	end
 
-class AlphaNode < ActiveRecord::Base
-end
+	class AlphaNode < ActiveRecord::Base
+	end
 
-class BetaNode < ActiveRecord::Base
-end
+	class BetaNode < ActiveRecord::Base
+	end
 
-class GammaNode < ActiveRecord::Base
-end
+	class GammaNode < ActiveRecord::Base
+	end
 
 In the above example there are three node types: AlphaNode, BetaNode, and GammaNode. AlphaNodes and BetaNodes can be parents of everybody including themselves. GammaNodes can only be children which effectively makes them leaves on the graph. Note: that these type hierarchies are not yet enforced in validations. They only serve to determine which associations are injected into each class. This will be fixed in the future.
 
@@ -99,14 +99,14 @@ Along with all the optional parameters for basic graphs there are:
 
 ==== Migration Example
 
-create_table :links, do |t|
-	t.integer :ancestor_id
-	t.string  :ancestor_type
-	t.integer :descendent_id
-	t.string  :descendent_type
-	t.boolean :direct
-	t.integer :count
-end
+	create_table :links, do |t|
+		t.integer :ancestor_id
+		t.string  :ancestor_type
+		t.integer :descendent_id
+		t.string  :descendent_type
+		t.boolean :direct
+		t.integer :count
+	end
 
 == The Algorithm
 
@@ -128,5 +128,6 @@ Whoever did the awesome_nested_set plugin. This is my first plugin and I used th
 
 == Credit
 
-Algorithm and plugin designed by Matthew Leventi (first letter of my first name followed by my last name @gmail.com). Im open to questions, very open to bugs, and even more receptive of bug fixes. I am also currently (August 2008) looking for a job just having graduated University of Rochester.
+Authors:: Matthew Leventi
 
+Algorithm and plugin designed by Matthew Leventi Email:(first letter of my first name followed by my last name @gmail.com). Im open to questions, very open to bugs, and even more receptive of bug fixes. I am also currently (August 2008) looking for a job just having graduated University of Rochester.
