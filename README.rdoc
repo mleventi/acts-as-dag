@@ -56,6 +56,9 @@ For a basic non-polymorphic graph you need to call acts_as_dag_links as a single
 - :direct_column. By default, 'direct', boolean column that represents whether the link is an edge (direct)
 - :count_column. By default, 'count', represents the number of ways to get from A to B.
 - :polymorphic. By default, false, If you want polymorphic graphs see below.
+- :prefix. By default, '', If set to anything else a '#{prefix}_' gets added to all associations and methods added to :for class.
+
+Note: If you want to have a model that is part of multiple graphs you need to specify prefixes to avoid clashes.  
 
 ==== Migration Example
 
@@ -65,6 +68,37 @@ For a basic non-polymorphic graph you need to call acts_as_dag_links as a single
 		t.boolean :direct
 		t.integer :count
 	end
+	
+==== Injected Associations and Methods
+
+One of the main benefits of the Acts as Dag plugin is that you can modify the graph with ease through the injected functionality provided through the :for option. Hence in the example above 'Node' would receive the following
+
+- links_as_ancestor: Has many association that finds the links with the current instance as ancestor
+- links_as_descendent: Has many association that finds the links with the current instance as descendent
+- links_as_parent: Has many association that finds direct links (edges) with the current instance as ancestor
+- links_as_child: Has many association that finds direct links (edges) with the current instance as descendent
+
+Note that if a record is in links_as_parent it will be in links_as_ancestor. Also note that adding records to either produces the same result as you can only add direct links (edges). Currently there is also an error if a record exists for links_as_ancestor and you try to add it to links_as_parent. The correct way is to use the make_direct method on the link instance.
+
+Using each of the above associations as the :through option the following are also injected
+
+- ancestors
+- descendents
+- parents
+- children
+
+You can safely add through associations bearing in mind the issue above. You can also delete destroyable links.
+
+Each node instance also gets
+
+- leaf?: Is this a leaf node, ie it has no descendents
+- root?: Is this a root node, ie it has no ancestors
+
+==== Caveats for Adding, Updating, Deleting Links
+
+Due to the algorithm used there are some caveats for modifying links. Don't worry if you try to do something illegal because it will raise exceptions and not muck the graph up.
+
+You can only create new edges where a link doesn't already exist. If the link exists and you want to make it direct you need to promote it using make_direct instance method. Also you can only create direct links. This makes sense because indirect links are dependent on direct links. An indirect link by itself makes no sense to the algorithm. In reverse, you can only delete links which are direct and have no indirect nature. Hence the link only exists because it is direct and not through a sequence of other links. Instead of deleting these types of links you can downgrade them using make_indirect. This will remove the direct edge A -> C and leave the transitive edge from A -> B and B -> C. So just remember before you add, check if it exists, or use one of the link class method create_edge! which will always work.
 
 === Polymorphic Graphs
 
@@ -89,6 +123,10 @@ You get a polymorphic graph by setting the :polymorphic option to true. This all
 	end
 
 In the above example there are three node types: AlphaNode, BetaNode, and GammaNode. AlphaNodes and BetaNodes can be parents of everybody including themselves. GammaNodes can only be children which effectively makes them leaves on the graph. Note: that these type hierarchies are not yet enforced in validations. They only serve to determine which associations are injected into each class. This will be fixed in the future.
+
+==== Injected Associations and Methods
+
+Polymorphic graphs have the injected associations of basic graphs plus... (coming soon as it gets built)
 
 ==== Optional Parameters
 
