@@ -141,6 +141,18 @@ module ActiveRecord
               has_many :children, :through => :links_as_parent, :source => :descendent
             EOF
             
+            acts_as_dag_options[:for].to_s.constantize.class_eval <<-EOF
+              #Is the node a leaf (no outgoing edges)
+              def #{acts_as_dag_options[:prefix]}leaf?
+                return self.links_as_ancestor.empty?
+              end
+
+              #Is the node a root (no incoming edges)
+              def #{acts_as_dag_options[:prefix]}root?
+                return self.links_as_descendent.empty?
+              end
+            EOF
+            
             #acts_as_dag_options[:for].extend(NonPolyNodeClassMethods)
             #acts_as_dag_options[:for].include(NonPolyNodeInstanceMethods)
                        
@@ -174,10 +186,10 @@ module ActiveRecord
           code += 'end'
           module_eval code
           
-          [direct_column_name, count_column_name].each do |column|
+          [count_column_name].each do |column|
             module_eval <<-"end_eval", __FILE__, __LINE__
               def #{column}=(x)
-                raise ActiveRecord::ActiveRecordError, "Unauthorized assignment to #{column}: it's an internal field handled by acts_as_nested_set code, use move_to_* methods instead."
+                raise ActiveRecord::ActiveRecordError, "Unauthorized assignment to #{column}: it's an internal field handled by acts_as_dag code."
               end
             end_eval
           end       
