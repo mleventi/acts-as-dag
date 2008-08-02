@@ -7,47 +7,58 @@ require "#{File.dirname(__FILE__)}/../init"
 
 ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :dbfile => ":memory:")
 
-class Node < ActiveRecord::Base
-  set_table_name 'nodes'
-end
-
-class AlphaNode < ActiveRecord::Base
-  set_table_name 'alpha_nodes'
-end
-
-class BetaNode < ActiveRecord::Base
-  set_table_name 'beta_nodes'
-end
-
-class GammaNode < ActiveRecord::Base
-  set_table_name 'gamma_nodes'
-end
-
-class ZetaNode < ActiveRecord::Base
-  set_table_name 'zeta_nodes'
-end
-
 #Used for basic graph link testing
 class Default < ActiveRecord::Base
-  acts_as_dag_links :for => 'Node'
+  acts_as_dag_links :class_name => 'Node'
   set_table_name 'edges'
 end
 
 #Used for polymorphic graph link testing
 class Poly < ActiveRecord::Base
-  acts_as_dag_links :polymorphic => true, :for => {'AlphaNode' => ['BetaNode','GammaNode']}
+  acts_as_dag_links :polymorphic => true
   set_table_name 'poly_edges'
 end
 
 #Used for redefinition testing
 class Redefiner < ActiveRecord::Base
-  acts_as_dag_links :for => 'ZetaNode', 
+  acts_as_dag_links :class_name => 'Redefiner',
     :direct_column => 'd', 
     :count_column => 'c',
     :ancestor_id_column => 'foo_id',
-    :descendent_id_column => 'bar_id'
+    :descendant_id_column => 'bar_id'
   set_table_name 'edges2'
 end
+
+class Node < ActiveRecord::Base
+  has_dag_links :class_name => 'Default'
+  set_table_name 'nodes'
+end
+
+class RedefNode < ActiveRecord::Base
+  has_dag_links :class_name => 'Redefiner'
+  set_table_name 'redef_nodes'
+end
+
+class AlphaNode < ActiveRecord::Base
+  has_dag_links :class_name => 'Poly'
+  set_table_name 'alpha_nodes'
+end
+
+class BetaNode < ActiveRecord::Base
+  has_dag_links :class_name => 'Poly'
+  set_table_name 'beta_nodes'
+end
+
+class GammaNode < ActiveRecord::Base
+  has_dag_links :class_name => 'Poly'
+  set_table_name 'gamma_nodes'
+end
+
+class ZetaNode < ActiveRecord::Base
+  has_dag_links :class_name => 'Poly'
+  set_table_name 'zeta_nodes'
+end
+
 
 #Unit Tests for the DAG plugin
 class DagTest < Test::Unit::TestCase
@@ -57,7 +68,7 @@ class DagTest < Test::Unit::TestCase
     ActiveRecord::Schema.define(:version => 1) do
     create_table :edges do |t|
       t.column :ancestor_id, :integer
-      t.column :descendent_id, :integer
+      t.column :descendant_id, :integer
       t.column :direct, :boolean
       t.column :count, :integer
     end
@@ -88,12 +99,16 @@ class DagTest < Test::Unit::TestCase
     create_table :zeta_nodes do |t|
       t.column :name, :string
     end
+    
+    create_table :redef_nodes do |t|
+      t.column :name, :string
+    end
 
     create_table :poly_edges do |t|
       t.column :ancestor_id, :integer
       t.column :ancestor_type, :string
-      t.column :descendent_id, :integer
-      t.column :descendent_type, :string
+      t.column :descendant_id, :integer
+      t.column :descendant_type, :string
       t.column :direct, :boolean
       t.column :count, :integer
     end
@@ -112,9 +127,9 @@ class DagTest < Test::Unit::TestCase
     assert_equal 'ancestor_id', Default.acts_as_dag_options[:ancestor_id_column]
   end
   
-  #Test descendent id column default value
-  def test_descendent_id_column_default
-    assert_equal 'descendent_id', Default.acts_as_dag_options[:descendent_id_column]
+  #Test descendant id column default value
+  def test_descendant_id_column_default
+    assert_equal 'descendant_id', Default.acts_as_dag_options[:descendant_id_column]
   end
   
   #Test direct column default value
@@ -132,9 +147,9 @@ class DagTest < Test::Unit::TestCase
     assert_equal 'ancestor_type', Poly.acts_as_dag_options[:ancestor_type_column]
   end
   
-  #Test descendent type column default value
-  def test_descendent_type_column_default
-    assert_equal 'descendent_type', Poly.acts_as_dag_options[:descendent_type_column]
+  #Test descendant type column default value
+  def test_descendant_type_column_default
+    assert_equal 'descendant_type', Poly.acts_as_dag_options[:descendant_type_column]
   end
   
   #Test polymorphic option default value
@@ -151,10 +166,10 @@ class DagTest < Test::Unit::TestCase
     assert_equal 'ancestor_id', Default.new.ancestor_id_column_name
   end
   
-  #Tests descendent_id_column_name instance and class method
-  def test_descendent_id_column_name
-    assert_equal 'descendent_id', Default.descendent_id_column_name
-    assert_equal 'descendent_id', Default.new.descendent_id_column_name
+  #Tests descendant_id_column_name instance and class method
+  def test_descendant_id_column_name
+    assert_equal 'descendant_id', Default.descendant_id_column_name
+    assert_equal 'descendant_id', Default.new.descendant_id_column_name
   end
   
   #Tests direct_column_name instance and class method
@@ -175,10 +190,10 @@ class DagTest < Test::Unit::TestCase
     assert_equal 'ancestor_type', Poly.new.ancestor_type_column_name
   end
   
-  #Tests descendent_type_column_name polymorphic instance and class method
-  def test_descendent_type_column_name
-    assert_equal 'descendent_type', Poly.descendent_type_column_name
-    assert_equal 'descendent_type', Poly.new.descendent_type_column_name
+  #Tests descendant_type_column_name polymorphic instance and class method
+  def test_descendant_type_column_name
+    assert_equal 'descendant_type', Poly.descendant_type_column_name
+    assert_equal 'descendant_type', Poly.new.descendant_type_column_name
   end
   
   #Tests that count is a protected function and cannot be assigned
@@ -236,7 +251,7 @@ class DagTest < Test::Unit::TestCase
   def test_source_method
     a = Node.create!
     b = Node.create!
-    edge = Default.new(:ancestor => a, :descendent => b)
+    edge = Default.new(:ancestor => a, :descendant => b)
     s = edge.source
     assert s.matches?(a)
   end
@@ -245,7 +260,7 @@ class DagTest < Test::Unit::TestCase
   def test_sink_method
     a = Node.create!
     b = Node.create!
-    edge = Default.new(:ancestor => a, :descendent => b)
+    edge = Default.new(:ancestor => a, :descendant => b)
     s = edge.sink
     assert s.matches?(b)
   end
@@ -254,7 +269,7 @@ class DagTest < Test::Unit::TestCase
   def test_source_method_poly
     a = AlphaNode.create!
     b = AlphaNode.create!
-    edge = Poly.new(:ancestor => a, :descendent => b)
+    edge = Poly.new(:ancestor => a, :descendant => b)
     s = edge.source
     assert s.matches?(a)
   end
@@ -263,7 +278,7 @@ class DagTest < Test::Unit::TestCase
   def test_sink_method_poly
     a = AlphaNode.create!
     b = AlphaNode.create!
-    edge = Poly.new(:ancestor => a, :descendent => b)
+    edge = Poly.new(:ancestor => a, :descendant => b)
     s = edge.sink
     assert s.matches?(b)
   end
@@ -319,7 +334,7 @@ class DagTest < Test::Unit::TestCase
     b = Node.create!
     e = Default.create_edge!(a,b)
     assert_equal e.ancestor, a
-    assert_equal e.descendent, b
+    assert_equal e.descendant, b
   end
   
   #Tests that find edge works
@@ -329,7 +344,7 @@ class DagTest < Test::Unit::TestCase
     e = Default.create_edge(a,b)
     e = Default.find_edge(a,b)
     assert_equal e.ancestor, a
-    assert_equal e.descendent, b
+    assert_equal e.descendant, b
   end
   
   #Tests that find link works and find_edge rejects indirects
@@ -339,7 +354,7 @@ class DagTest < Test::Unit::TestCase
     e = Default.create_edge(a,b)
     e = Default.find_link(a,b)
     assert_equal e.ancestor, a
-    assert_equal e.descendent, b
+    assert_equal e.descendant, b
   end
   
   #Tests that we catch links that would be duplicated on creation
@@ -424,7 +439,7 @@ class DagTest < Test::Unit::TestCase
     g = Default.find_link(a,c)
     h = Default.find_edge(a,c)
     assert_equal g.ancestor, a
-    assert_equal g.descendent, c
+    assert_equal g.descendant, c
     assert_nil h
   end
   
@@ -471,19 +486,19 @@ class DagTest < Test::Unit::TestCase
     test = Default.find_link(a,c)
     testnil = Default.find_edge(a,c)
     assert_equal test.ancestor, a
-    assert_equal test.descendent, c
+    assert_equal test.descendant, c
     assert_nil testnil
     #a to d
     test = Default.find_link(a,d)
     testnil = Default.find_edge(a,d)
     assert_equal test.ancestor, a
-    assert_equal test.descendent, d
+    assert_equal test.descendant, d
     assert_nil testnil
     #b to d
     test = Default.find_link(b,d)
     testnil = Default.find_edge(b,d)
     assert_equal test.ancestor, b
-    assert_equal test.descendent, d
+    assert_equal test.descendant, d
     assert_nil testnil
   end
   
@@ -497,7 +512,7 @@ class DagTest < Test::Unit::TestCase
     assert_equal 1, e2.count
     assert_equal e,e2
     assert_equal e2.ancestor, a
-    assert_equal e2.descendent, b
+    assert_equal e2.descendant, b
   end
   
   #Tests simple indirect link creation
@@ -512,7 +527,7 @@ class DagTest < Test::Unit::TestCase
     assert !indirect.direct?
     assert_equal 1, indirect.count
     assert_equal a, indirect.ancestor
-    assert_equal c, indirect.descendent 
+    assert_equal c, indirect.descendant 
   end
   
   #Tests has_many injection using builds for ancestor
@@ -520,21 +535,21 @@ class DagTest < Test::Unit::TestCase
     a = Node.create!
     b = Node.create!
     e = a.links_as_ancestor.build
-    e.descendent = b
+    e.descendant = b
     e.save!
     assert_equal e.ancestor, a
-    assert_equal e.descendent, b
+    assert_equal e.descendant, b
   end
   
-  #Tests has_many injection using builds for descendent
-  def test_has_many_injection_descendent
+  #Tests has_many injection using builds for descendant
+  def test_has_many_injection_descendant
     a = Node.create!
     b = Node.create!
-    e = b.links_as_descendent.build
+    e = b.links_as_descendant.build
     e.ancestor = a
     e.save!
     assert_equal e.ancestor, a
-    assert_equal e.descendent, b
+    assert_equal e.descendant, b
   end
   
   #Tests has_many injection using builds for parent
@@ -542,10 +557,10 @@ class DagTest < Test::Unit::TestCase
     a = Node.create!
     b = Node.create!
     e = a.links_as_parent.build
-    e.descendent = b
+    e.descendant = b
     e.save!
     assert_equal e.ancestor, a
-    assert_equal e.descendent, b
+    assert_equal e.descendant, b
   end
   
   #Tests has_many injection using builds for child
@@ -556,14 +571,14 @@ class DagTest < Test::Unit::TestCase
     e.ancestor = a
     e.save!
     assert_equal e.ancestor, a
-    assert_equal e.descendent, b
+    assert_equal e.descendant, b
   end
   
-  #Tests has_many through injection of descendents association
-  def test_has_many_through_injection_descendents
+  #Tests has_many through injection of descendants association
+  def test_has_many_through_injection_descendants
     a = Node.create!
     b = Node.create!
-    a.descendents << b
+    a.descendants << b
     e = Default.find_link(a,b)
     assert !e.nil? 
   end
@@ -619,18 +634,13 @@ class DagTest < Test::Unit::TestCase
     assert a.root?
   end
   
-  def test_leaves_scope
-    a = Node.create!
-    assert Node.leaves.empty?
-  end
-  
   #def test_manual_create_lonely_edge
   #  a = Node.create!
   #  b = Node.create!
-  #  edge = Default.new(:ancestor => a, :descendent => b)
+  #  edge = Default.new(:ancestor => a, :descendant => b)
   #  edge.save!
   #  assert_equal a.links_as_ancestor.first, edge
-  #  assert_equal b.links_as_descendent.first, edge
+  #  assert_equal b.links_as_descendant.first, edge
   #  assert_equal 1, edge.count
   #  assert_equal true, edge.direct?
   #end
@@ -642,19 +652,19 @@ class DagTest < Test::Unit::TestCase
   #more column names
 
   #def test_ancestor_id_column_protected_from_assignment_on_update
-  #  assert_raises(ActiveRecord::ActiveRecordError) { d = Default.new(:ancestor_id => 1, :descendent_id => 2) }
+  #  assert_raises(ActiveRecord::ActiveRecordError) { d = Default.new(:ancestor_id => 1, :descendant_id => 2) }
   #end
   #
-  #def test_descendent_id_column_protected_from_assignment_on_update
-  #  assert_raises(ActiveRecord::ActiveRecordError) { Default.new.descendent_id = 1 }
+  #def test_descendant_id_column_protected_from_assignment_on_update
+  #  assert_raises(ActiveRecord::ActiveRecordError) { Default.new.descendant_id = 1 }
   #end
   #
   #def test_ancestor_type_column_protected_from_assignment_on_update
   #  assert_raises(ActiveRecord::ActiveRecordError) { Poly.new.ancestor_type = 'A' }
   #end
   #
-  #def test_descendent_type_column_protected_from_assignment_on_update
-  #  assert_raises(ActiveRecord::ActiveRecordError) { Poly.new.descendent_type = 'A' }
+  #def test_descendant_type_column_protected_from_assignment_on_update
+  #  assert_raises(ActiveRecord::ActiveRecordError) { Poly.new.descendant_type = 'A' }
   #end
   
   #def test_columns_protected_on_initialize

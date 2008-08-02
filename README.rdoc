@@ -12,17 +12,17 @@ http://en.wikipedia.org/wiki/Directed_acyclic_graph
 
 === Aren't there plugins for this already?
 
-Yes, but I think they aren't as fast or feature filled. Flogic has a good acts_as_dag plugin on github which would be similar to acts_as_tree.
+Yes, but I think they aren't as fast or feature filled. Flogic has a good simple acts_as_dag plugin on github which would be similar to acts_as_tree.
 
 == Features
 
 * DAG graph functionality
-* parents, children, ancestors, and descendents has_many associations
 * STI support
-* Polymorphic graphs (almost)
+* Polymorphic graphs
 * Association injection for graph nodes
+* Instance method injections (root?,leaf?) for graph nodes
 * O(1) lookups, no breath or depth first searching
-* O(x*y) insert, update and delete, where x & y are the number of ancestors and descendents of a node.
+* O(x*y) insert, update and delete, where x & y are the number of ancestors and descendants of a node.
 
 == Requirements
 
@@ -31,120 +31,136 @@ This uses named_scope so your going to need Rails 2.1 or above.
 == Installation
 
 	script/plugin install git://github.com/mleventi/acts-as-dag.git
+	
+== Singleton Methods
 
-== Usage
+This section outlines the two methods that need to be included in your ActiveRecord models. In general this whole plugin can be thought of as one big has_many association.
 
-This plugin requires two or more models to be used correctly. One model represents the edges for a graph. The other models can represent the nodes. Usage is a bit different if you decided to have a polymorphic graph with many types of nodes or a basic graph where all the nodes are of the same type.
+=== acts_as_dag_links
 
-=== Basic Graphs
+This singleton class method needs to be called in your ActiveRecord model that represents the links for the DAG graph. For non-polymorphic graphs it has a required parameter:
 
-For a basic non-polymorphic graph you need to call acts_as_dag_links as a singleton class instance method in the model representing your graph links. This method takes a hash of options as its only parameter. The only required parameter is :for which should indicated the class_name for the model that will act as a graph node.
+	acts_as_dag_links :node_class_name => 'Class Name of the node model'
 
-==== Model Example
-
-	class Link < ActiveRecord::Base
-		acts_as_dag_links :for => 'Node'
-	end
-
-	class Node < ActiveRecord::Base
-	end
+If the graph is polymorphic :node_class_name is unnecessary.
 
 ==== Optional Parameters
 
 - :ancestor_id_column. By default, 'ancestor_id', column to use for the ancestor reference
-- :descendent_id_column. By default, 'descendent_id', column to use for the descendent reference
+- :descendant_id_column. By default, 'descendant_id', column to use for the descendant reference
 - :direct_column. By default, 'direct', boolean column that represents whether the link is an edge (direct)
 - :count_column. By default, 'count', represents the number of ways to get from A to B.
 - :polymorphic. By default, false, If you want polymorphic graphs see below.
-- :prefix. By default, '', If set to anything else a '#{prefix}_' gets added to all associations and methods added to :for class.
 
-Note: If you want to have a model that is part of multiple graphs you need to specify prefixes to avoid clashes.  
+With polymorphic graphs we also have...
 
-==== Migration Example
+- :ancestor_type_column. By default, 'ancestor_type', column to use for the ancestor type reference
+- :descendant_type_column. By default, 'descendant_type', column to use for the descendant type reference
+
+==== Required Table Columns
+
+Each of the optional column parameters needs a field in the link table. Hence for non-polymorphic graphs a migration would look like...
 
 	create_table :links, do |t|
 		t.integer :ancestor_id
-		t.integer :descendent_id
+		t.integer :descendant_id
 		t.boolean :direct
 		t.integer :count
 	end
 	
-==== Injected Associations and Methods
+And for polymorphic graphs...
 
-One of the main benefits of the Acts as Dag plugin is that you can modify the graph with ease through the injected functionality provided through the :for option. Hence in the example above 'Node' would receive the following
+	create_table :links, do |t|
+		t.integer :ancestor_id
+		t.string  :ancestor_type
+		t.integer :descendant_id
+		t.string  :descendant_type
+		t.boolean :direct
+		t.integer :count
+	end
+	
+==== Injected Associations and Named Scopes
+
+By calling the acts_as_dag_links method you get a few goodies in your link model along with the logic that keeps the graph uncorrupted, and free of cycles. Below is a peak at some sudo code representative of what gets injected. For an injected method list consult the rdocs.
+
+	class Link < ActiveRecord::Base
+		acts_as_dag_links :node_class_name => 'Node'
+		
+		#Ancestor Node
+		belongs_to :ancestor
+		#Descendant Node
+		belongs_to :descendant
+		
+		#Scoped links with ancestor...
+		named_scope :with_ancestor(ancestor_instance)
+		#Scoped links with descendant...
+		named_scope :with_descendant(descendent_instance)
+		
+		#Scoped links that are direct aka edges
+		named_scope :direct
+		#Scope links that are indirect
+		named_scope :indirect
+		
+		#Scoped actual ancestors
+		named_scope :ancestor_nodes, :joins => :ancestor
+		#Scoped actual descendants
+		named_scope :descendant_nodes, :joins => :descendant
+	end
+	
+=== has_dag_links
+
+This singleton class method can be optionally called from the node ActiveRecord model. If you do not call it you don't get all the nice associations within the node model, yet everything will still work fine. It takes the required parameter:
+
+	has_dag_links :link_class_name => 'Class Name of the link model'
+
+==== Optional Parameters
+
+- :prefix. By default, ''. Use a prefix if your model calls has_dag_links for multiple link classes
+
+If your link class holds a polymorphic graph you also have...
+
+- :ancestor_class_names. By default [], array of class names that are ancestors to this class.
+- :descendant_class_names. By default [], array of class names that are descendants to this class.
+
+==== Injected Associations
+
+has_dag_links provides a number of has_many and has_many_through associations.
 
 - links_as_ancestor: Has many association that finds the links with the current instance as ancestor
-- links_as_descendent: Has many association that finds the links with the current instance as descendent
+- links_as_descendant: Has many association that finds the links with the current instance as descendant
 - links_as_parent: Has many association that finds direct links (edges) with the current instance as ancestor
-- links_as_child: Has many association that finds direct links (edges) with the current instance as descendent
+- links_as_child: Has many association that finds direct links (edges) with the current instance as descendant
 
 Note that if a record is in links_as_parent it will be in links_as_ancestor. Also note that adding records to either produces the same result as you can only add direct links (edges). Currently there is also an error if a record exists for links_as_ancestor and you try to add it to links_as_parent. The correct way is to use the make_direct method on the link instance.
 
 Using each of the above associations as the :through option the following are also injected
 
 - ancestors
-- descendents
+- descendants
 - parents
 - children
 
-You can safely add through associations bearing in mind the issue above. You can also delete destroyable links.
+For polymorphic graphs where the ancestor_class_names or descendant_class_names includes class names the following associations are also built. For each ancestor_class_name:
 
-Each node instance also gets
+-links_as_descendant_for_#{ancestor_class_name.tablelize}
+-links_as_child_for_#{ancestor_class_name.tablelize}
+-ancestor_#{ancestor_class_name.tablelize}
+-parent_#{ancestor_class_name.tablelize}
 
-- leaf?: Is this a leaf node, ie it has no descendents
-- root?: Is this a root node, ie it has no ancestors
+For each descendant_class_name
 
-==== Caveats for Adding, Updating, Deleting Links
+-links_as_ancestor_for_#{ancestor_class_name.tablelize}
+-links_as_parent_for_#{ancestor_class_name.tablelize}
+-descendant_#{ancestor_class_name.tablelize}
+-child_#{ancestor_class_name.tablelize}
+
+== Usage
+
+=== Caveats for Adding, Updating, Deleting Links
 
 Due to the algorithm used there are some caveats for modifying links. Don't worry if you try to do something illegal because it will raise exceptions and not muck the graph up.
 
 You can only create new edges where a link doesn't already exist. If the link exists and you want to make it direct you need to promote it using make_direct instance method. Also you can only create direct links. This makes sense because indirect links are dependent on direct links. An indirect link by itself makes no sense to the algorithm. In reverse, you can only delete links which are direct and have no indirect nature. Hence the link only exists because it is direct and not through a sequence of other links. Instead of deleting these types of links you can downgrade them using make_indirect. This will remove the direct edge A -> C and leave the transitive edge from A -> B and B -> C. So just remember before you add, check if it exists, or use one of the link class method create_edge! which will always work.
-
-=== Polymorphic Graphs
-
-Note: This is still in beta, Everything is stable except for the injection of has_many associations. So you can use the class methods on the Link class to find out whats related to what and to add ties
-
-You get a polymorphic graph by setting the :polymorphic option to true. This allows different ActiveRecord models to be the nodes on the graph. Having a polymorphic graph changes the :for option to a Hash. This hash represents the parent child relationships between the ActiveRecord models. Note that you can have bidirectional relationships (parent -> child, child -> parent) if you wish. In the hash each key represents a parent and the value should be an array of children. The key, and each value in the array should represent a model class_name.
-
-==== Model Example
-
-	class Link < ActiveRecord::Base
-		acts_as_dag_links :polymorphic => true, :for => {'AlphaNode' => ['AlphaNode','BetaNode','GammaNode'], 
-			'BetaNode' => ['AlphaNode','BetaNode','GammaNode']}
-	end
-
-	class AlphaNode < ActiveRecord::Base
-	end
-
-	class BetaNode < ActiveRecord::Base
-	end
-
-	class GammaNode < ActiveRecord::Base
-	end
-
-In the above example there are three node types: AlphaNode, BetaNode, and GammaNode. AlphaNodes and BetaNodes can be parents of everybody including themselves. GammaNodes can only be children which effectively makes them leaves on the graph. Note: that these type hierarchies are not yet enforced in validations. They only serve to determine which associations are injected into each class. This will be fixed in the future.
-
-==== Injected Associations and Methods
-
-Polymorphic graphs have the injected associations of basic graphs plus... (coming soon as it gets built)
-
-==== Optional Parameters
-
-Along with all the optional parameters for basic graphs there are:
-
-- :ancestor_type_column. By default, 'ancestor_type', column to use for the ancestor type reference
-- :descendent_type_column. By default, 'descendent_type', column to use for the descendent type reference
-
-==== Migration Example
-
-	create_table :links, do |t|
-		t.integer :ancestor_id
-		t.string  :ancestor_type
-		t.integer :descendent_id
-		t.string  :descendent_type
-		t.boolean :direct
-		t.integer :count
-	end
 
 == The Algorithm
 
@@ -156,9 +172,9 @@ To start there is some terminology:
 - Edge is a direct connection between two nodes.
 - Link is a connection using one or more edges.
 
-This implementation works by storing every possible link as a record in the database. The links originate at the ancestor and end at the descendent. Hence checking if X is a descendent of Y can be accomplished in one SQL query. Likewise finding all descendents or ancestors of Y can also be done in a single query. There are simple queries that don't use recursive stored procedures that you would need with a parent child model. Hence getting information out of the database is really fast. You can also find out the number of unique ways X is connected to Y and whether it has a direct connection. This allows the finding of all parents or children of a node with one query.
+This implementation works by storing every possible link as a record in the database. The links originate at the ancestor and end at the descendant. Hence checking if X is a descendant of Y can be accomplished in one SQL query. Likewise finding all descendants or ancestors of Y can also be done in a single query. There are simple queries that don't use recursive stored procedures that you would need with a parent child model. Hence getting information out of the database is really fast. You can also find out the number of unique ways X is connected to Y and whether it has a direct connection. This allows the finding of all parents or children of a node with one query.
 
-The downside to this implementation, besides the large storage requirements, is that updating the graph by adding or removing nodes or edges is not trivial. When edges are added a sort of cross product between the parent and child nodes ancestors and descendents is done that updates the counts and creates new links as necessary. Hence the complexity of an update, add, or deletion, matters heavily on how your graph is arranged and what nodes you are connecting.
+The downside to this implementation, besides the large storage requirements, is that updating the graph by adding or removing nodes or edges is not trivial. When edges are added a sort of cross product between the parent and child nodes ancestors and descendants is done that updates the counts and creates new links as necessary. Hence the complexity of an update, add, or deletion, matters heavily on how your graph is arranged and what nodes you are connecting.
 
 == Thanks
 

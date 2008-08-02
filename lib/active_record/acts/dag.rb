@@ -10,24 +10,18 @@ module ActiveRecord
           conf = {
             :ancestor_id_column => 'ancestor_id',
             :ancestor_type_column => 'ancestor_type', 
-            :descendent_id_column => 'descendent_id',
-            :descendent_type_column => 'descendent_type', 
+            :descendant_id_column => 'descendant_id',
+            :descendant_type_column => 'descendant_type', 
             :direct_column => 'direct', 
             :count_column => 'count',
             :polymorphic => false,
-            :prefix => ''}
+            :node_class_name => nil}
           conf.update(options)
           
-          #polymorphic
-          if conf[:polymorphic]
-            raise ActiveRecord::ActiveRecordError, 'Need "for' if conf[:for].nil?
-            raise ActiveRecord::ActiveRecordError, 'Need "for" as hash' unless conf[:for].is_a?(Hash)
-          else
-            raise ActiveRecord::ActiveRecordError, 'Need "for" option to know model that uses this link' if conf[:for].nil?
-          end
-          
-          unless conf[:prefix] == ''
-            conf[:prefix] += '_'
+          unless conf[:polymorphic]
+            if conf[:node_class_name].nil?
+              raise ActiveRecord::ActiveRecordError, 'Nonpolymorphic graphs need to specify :class_name with the recieving class like belong_to'
+            end 
           end
             
           write_inheritable_attribute :acts_as_dag_options, conf
@@ -59,102 +53,46 @@ module ActiveRecord
             end_eval
           end
           
-          internal_columns = [ancestor_id_column_name,descendent_id_column_name]
+          internal_columns = [ancestor_id_column_name,descendant_id_column_name]
           edge_class_name = self.to_s
           
           direct_column_name.intern
           count_column_name.intern
           
-          #links to ancestor and descendent
+          #links to ancestor and descendant
           if acts_as_dag_polymorphic?
             extend PolyColumns
             include PolyColumns
             
             internal_columns << ancestor_type_column_name
-            internal_columns << descendent_type_column_name
+            internal_columns << descendant_type_column_name
             
-            self.module_eval <<-EOL
-              belongs_to :#{acts_as_dag_options[:prefix]}ancestor, :polymorphic => true
-              belongs_to :#{acts_as_dag_options[:prefix]}descendent, :polymorphic => true
-            EOL
+            belongs_to :ancestor, :polymorphic => true
+            belongs_to :descendant, :polymorphic => true
             
-            validates_presence_of ancestor_type_column_name, descendent_type_column_name
-            validates_uniqueness_of ancestor_id_column_name, :scope => [ancestor_type_column_name,descendent_type_column_name,descendent_id_column_name]
+            validates_presence_of ancestor_type_column_name, descendant_type_column_name
+            validates_uniqueness_of ancestor_id_column_name, :scope => [ancestor_type_column_name,descendant_type_column_name,descendant_id_column_name]
             
             named_scope :with_ancestor, lambda {|ancestor| {:conditions => {ancestor_id_column_name => ancestor.id, ancestor_type_column_name => ancestor.class.to_s}}}
-            named_scope :with_descendent, lambda {|descendent| {:conditions => {descendent_id_column_name => descendent.id, descendent_type_column_name => descendent.class.to_s}}}
+            named_scope :with_descendant, lambda {|descendant| {:conditions => {descendant_id_column_name => descendant.id, descendant_type_column_name => descendant.class.to_s}}}
             
             named_scope :with_ancestor_point, lambda {|point| {:conditions => {ancestor_id_column_name => point.id, ancestor_type_column_name => point.type}}}
-            named_scope :with_descendent_point, lambda {|point| {:conditions => {descendent_id_column_name => point.id, descendent_type_column_name => point.type}}}
-            
-            children_seen = {}
-            acts_as_dag_options[:for].each_pair do |key,value|
-              parent_model = key
-              parent_model = parent_model.constantize if parent_model.is_a?(String)
-              parent_model.class_eval <<-EOF
-                has_many :#{acts_as_dag_options[:prefix]}links_as_ancestor, :as => :#{acts_as_dag_options[:prefix]}ancestor
-                has_many :#{acts_as_dag_options[:prefix]}descendents, :through => :#{acts_as_dag_options[:prefix]}links_as_ancestor, :source => :#{acts_as_dag_options[:prefix]}descendent
-              EOF
-              children_models = value
-              children_models = [children_models] unless value.is_a?(Array)
-              children_models.each do |child_model|
-                child_model = child_model.constantize if child_model.is_a?(String)
-                unless children_seen.has_key?(child_model)
-                  #creates the descendent tie
-                  child_model.class_eval <<-EOF
-                    has_many :#{acts_as_dag_options[:prefix]}links_as_descendent, :as => :#{acts_as_dag_options[:prefix]}descendent               
-                  EOF
-                  children_seen[child_model] = true
-                end
-                child_model.class_eval <<-EOF
-                  has_many :#{acts_as_dag_options[:prefix]}ancestors, :through => :#{acts_as_dag_options[:prefix]}links_as_descendent, :source => :#{acts_as_dag_options[:prefix]}ancestor
-                EOF
-              end              
-            end
+            named_scope :with_descendant_point, lambda {|point| {:conditions => {descendant_id_column_name => point.id, descendant_type_column_name => point.type}}}
+              
             extend PolyEdgeClassMethods
             include PolyEdgeClasses
             include PolyEdgeInstanceMethods  
           else
-            belongs_to :ancestor, :foreign_key => ancestor_id_column_name, :class_name => acts_as_dag_options[:for]
-            belongs_to :descendent, :foreign_key => descendent_id_column_name, :class_name => acts_as_dag_options[:for]
+            belongs_to :ancestor, :foreign_key => ancestor_id_column_name, :class_name => acts_as_dag_options[:node_class_name]
+            belongs_to :descendant, :foreign_key => descendant_id_column_name, :class_name => acts_as_dag_options[:node_class_name]
             
-            validates_uniqueness_of ancestor_id_column_name, :scope => [descendent_id_column_name]
+            validates_uniqueness_of ancestor_id_column_name, :scope => [descendant_id_column_name]
             
             named_scope :with_ancestor, lambda {|ancestor| {:conditions => {ancestor_id_column_name => ancestor.id}}}
-            named_scope :with_descendent, lambda {|descendent| {:conditions => {descendent_id_column_name => descendent.id}}}
+            named_scope :with_descendant, lambda {|descendant| {:conditions => {descendant_id_column_name => descendant.id}}}
             
             named_scope :with_ancestor_point, lambda {|point| {:conditions => {ancestor_id_column_name => point.id}}}
-            named_scope :with_descendent_point, lambda {|point| {:conditions => {descendent_id_column_name => point.id}}}
-            
-            
-            acts_as_dag_options[:for].to_s.constantize.class_eval <<-EOF
-              has_many :#{acts_as_dag_options[:prefix]}links_as_ancestor, :foreign_key => '#{ancestor_id_column_name}', :class_name => '#{edge_class_name}'
-              has_many :#{acts_as_dag_options[:prefix]}links_as_descendent, :foreign_key => '#{descendent_id_column_name}', :class_name => '#{edge_class_name}'
-              
-              has_many :#{acts_as_dag_options[:prefix]}ancestors, :through => :#{acts_as_dag_options[:prefix]}links_as_descendent, :source => :ancestor
-              has_many :#{acts_as_dag_options[:prefix]}descendents, :through => :#{acts_as_dag_options[:prefix]}links_as_ancestor, :source => :descendent
-              
-              has_many :#{acts_as_dag_options[:prefix]}links_as_parent, :foreign_key => '#{ancestor_id_column_name}', :class_name => '#{edge_class_name}', :conditions => {'#{direct_column_name}' => true}
-              has_many :#{acts_as_dag_options[:prefix]}links_as_child, :foreign_key => '#{descendent_id_column_name}', :class_name => '#{edge_class_name}', :conditions => {'#{direct_column_name}' => true}
-              
-              has_many :parents, :through => :links_as_child, :source => :ancestor
-              has_many :children, :through => :links_as_parent, :source => :descendent
-            EOF
-            
-            acts_as_dag_options[:for].to_s.constantize.class_eval <<-EOF
-              #Is the node a leaf (no outgoing edges)
-              def #{acts_as_dag_options[:prefix]}leaf?
-                return self.links_as_ancestor.empty?
-              end
-
-              #Is the node a root (no incoming edges)
-              def #{acts_as_dag_options[:prefix]}root?
-                return self.links_as_descendent.empty?
-              end
-            EOF
-            
-            #acts_as_dag_options[:for].extend(NonPolyNodeClassMethods)
-            #acts_as_dag_options[:for].include(NonPolyNodeInstanceMethods)
+            named_scope :with_descendant_point, lambda {|point| {:conditions => {descendant_id_column_name => point.id}}}
                        
             extend NonPolyEdgeClassMethods
             include NonPolyEdgeClasses
@@ -165,10 +103,10 @@ module ActiveRecord
           named_scope :indirect, :conditions => {:direct => false}
           
           named_scope :ancestor_nodes, :joins => :ancestor
-          named_scope :descendent_nodes, :joins => :descendent
+          named_scope :descendant_nodes, :joins => :descendant
           
-          validates_presence_of ancestor_id_column_name, descendent_id_column_name
-          validates_numericality_of ancestor_id_column_name, descendent_id_column_name
+          validates_presence_of ancestor_id_column_name, descendant_id_column_name
+          validates_numericality_of ancestor_id_column_name, descendant_id_column_name
           
           extend EdgeClassMethods
           include EdgeInstanceMethods
@@ -193,8 +131,103 @@ module ActiveRecord
               end
             end_eval
           end       
+        end      
+        def has_dag_links(options = {})
+          conf = {
+            :class_name => nil,
+            :prefix => '',
+            :ancestor_class_names => [],
+            :descendant_class_names => []
+          }
+          conf.update(options)
+        
+          #check that class_name is filled
+          if conf[:class_name].nil?
+            raise ActiveRecord::ActiveRecordError, "has_dag must be provided with :class_name option"
+          end
+        
+          #add trailing '_' to prefix
+          unless conf[:prefix] == ''
+            conf[:prefix] += '_'
+          end
+        
+          prefix = conf[:prefix]
+          dag_link_class_name = conf[:class_name]
+          dag_link_class = conf[:class_name].constantize        
+        
+          if dag_link_class.acts_as_dag_polymorphic?
+            self.class_eval <<-EOL
+              has_many :#{prefix}links_as_ancestor, :as => :ancestor, :class_name => '#{dag_link_class_name}'
+              has_many :#{prefix}links_as_descendant, :as => :descendant, :class_name => '#{dag_link_class_name}'
+            
+              has_many :#{prefix}ancestors, :through => :#{prefix}links_as_descendant, :source => :ancestor
+              has_many :#{prefix}descendants, :through => :#{prefix}links_as_ancestor, :source => :descendant
+            
+              has_many :#{prefix}links_as_parent, :as => :ancestor, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.direct_column_name}' => true}
+              has_many :#{prefix}links_as_child, :as => :descendant, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.direct_column_name}' => true}
+            
+              has_many :parents, :through => :#{prefix}links_as_child, :source => :ancestor
+              has_many :children, :through => :#{prefix}links_as_parent, :source => :descendant
+            EOL
+          
+            conf[:ancestor_class_names].each do |class_name|
+              self.class_eval <<-EOL
+                has_many :#{prefix}links_as_descendant_for_#{class_name.tablelize}, :as => :descendant, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.ancestor_type_column_name}' => '#{class_name}'}
+                has_many :#{prefix}ancestor_#{class_name.tablelize}, :through => :#{prefix}links_as_descendant_for_#{class_name.tablelize}, :source => :ancestor, :source_type => '#{class_name}'
+            
+                has_many :#{prefix}links_as_child_for_#{class_name.tablelize}, :as => :descendant, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.ancestor_type_column_name}' => '#{class_name}','#{dag_link_class.direct_column_name}' => true}
+                has_many :#{prefix}parent_#{class_name.tablelize}, :through => :#{prefix}links_as_child_for_#{class_name.tablelize}, :source => :ancestor, :source_type => '#{class_name}'
+              
+                def #{prefix}leaf_for_#{class_name.tablelize}?
+                  return self.links_as_descendant_for_#{class_name.tablelize}.empty?
+                end
+              EOL
+            end
+          
+            conf[:descendant_class_names].each do |class_name|
+              self.class_eval <<-EOL
+                has_many :#{prefix}links_as_ancestor_for_#{class_name.tablelize}, :as => :ancestor, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.descendant_type_column_name}' => '#{class_name}'}
+                has_many :#{prefix}descendant_#{class_name.tablelize}, :through => :#{prefix}links_as_ancestor_for_#{class_name.tablelize}, :source => :descendant, :source_type => '#{class_name}'
+            
+                has_many :#{prefix}links_as_parent_for_#{class_name.tablelize}, :as => :ancestor, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.descendant_type_column_name}' => '#{class_name}','#{dag_link_class.direct_column_name}' => true}
+                has_many :#{prefix}child_#{class_name.tablelize}, :through => :#{prefix}links_as_parent_for_#{class_name.tablelize}, :source => :descendant, :source_type => '#{class_name}'
+              
+                def #{prefix}root_for_#{class_name.tablelize}?
+                  return self.links_as_ancestor_for_#{class_name.tablelize}.empty?
+                end
+              EOL
+            end
+          else
+            self.class_eval <<-EOL
+              has_many :#{prefix}links_as_ancestor, :foreign_key => '#{dag_link_class.ancestor_id_column_name}', :class_name => '#{dag_link_class_name}'
+              has_many :#{prefix}links_as_descendant, :foreign_key => '#{dag_link_class.descendant_id_column_name}', :class_name => '#{dag_link_class_name}'
+            
+              has_many :#{prefix}ancestors, :through => :#{prefix}links_as_descendant, :source => :ancestor
+              has_many :#{prefix}descendants, :through => :#{prefix}links_as_ancestor, :source => :descendant
+            
+              has_many :#{prefix}links_as_parent, :foreign_key => '#{dag_link_class.ancestor_id_column_name}', :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.direct_column_name}' => true}
+              has_many :#{prefix}links_as_child, :foreign_key => '#{dag_link_class.descendant_id_column_name}', :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.direct_column_name}' => true}
+                        
+              has_many :parents, :through => :#{prefix}links_as_child, :source => :ancestor
+              has_many :children, :through => :#{prefix}links_as_parent, :source => :descendant
+            EOL
+          end
+          self.class_eval <<-EOL
+            #Is the node a leaf (no outgoing edges)
+            def #{prefix}leaf?
+              return self.links_as_ancestor.empty?
+            end
+
+            #Is the node a root (no incoming edges)
+            def #{prefix}root?
+              return self.links_as_descendant.empty?
+            end
+          EOL
         end
       end
+          
+        
+        
       
       #Methods that show the columns for polymorphic DAGs
       module PolyColumns
@@ -202,8 +235,8 @@ module ActiveRecord
           acts_as_dag_options[:ancestor_type_column]
         end
         
-        def descendent_type_column_name
-          acts_as_dag_options[:descendent_type_column]
+        def descendant_type_column_name
+          acts_as_dag_options[:descendant_type_column]
         end
       end
       
@@ -213,8 +246,8 @@ module ActiveRecord
           acts_as_dag_options[:ancestor_id_column]
         end
         
-        def descendent_id_column_name
-          acts_as_dag_options[:descendent_id_column]
+        def descendant_id_column_name
+          acts_as_dag_options[:descendant_id_column]
         end
         
         def direct_column_name
@@ -237,8 +270,8 @@ module ActiveRecord
           {
             ancestor_id_column_name => source.id,
             ancestor_type_column_name => source.type,
-            descendent_id_column_name => sink.id,
-            descendent_type_column_name => sink.type
+            descendant_id_column_name => sink.id,
+            descendant_type_column_name => sink.type
           }
         end
       end
@@ -284,7 +317,7 @@ module ActiveRecord
         class Sink < EndPoint
           #Factory Construction method that generates a sink from a link
           def self.from_edge(edge)
-            self.new(edge.descendent_id,edge.descendent_type)
+            self.new(edge.descendant_id,edge.descendant_type)
           end
         end
       end
@@ -295,7 +328,7 @@ module ActiveRecord
         def conditions_for(source,sink)
           {
             ancestor_id_column_name => source.id,
-            descendent_id_column_name => sink.id
+            descendant_id_column_name => sink.id
             }
         end
       end
@@ -338,7 +371,7 @@ module ActiveRecord
         class Sink < EndPoint
           #Factory Construction method creates a sink instance from a link
           def self.from_edge(edge)
-            return self.new(edge.descendent_id)
+            return self.new(edge.descendant_id)
           end
         end
       end
@@ -347,9 +380,9 @@ module ActiveRecord
       module EdgeClassMethods
         
         #Returns a new edge between two points
-        def build_edge(ancestor,descendent)
+        def build_edge(ancestor,descendant)
           source = self::EndPoint.from(ancestor)
-          sink = self::EndPoint.from(descendent)
+          sink = self::EndPoint.from(descendant)
           conditions = self.conditions_for(source,sink)
           path = self.new(conditions)
           path.make_direct
@@ -357,33 +390,33 @@ module ActiveRecord
         end
         
         #Finds an edge between two points. Must be direct.
-        def find_edge(ancestor,descendent)
+        def find_edge(ancestor,descendant)
           source = self::EndPoint.from(ancestor)
-          sink = self::EndPoint.from(descendent)
+          sink = self::EndPoint.from(descendant)
           edge = self.find(:first,:conditions => self.conditions_for(source,sink).merge!({direct_column_name => true}))
           return edge
         end
         
         #Finds a link between two points.
-        def find_link(ancestor,descendent)
+        def find_link(ancestor,descendant)
           source = self::EndPoint.from(ancestor)
-          sink = self::EndPoint.from(descendent)
+          sink = self::EndPoint.from(descendant)
           link = self.find(:first,:conditions => self.conditions_for(source,sink))
           return link
         end 
         
         #Finds or builds an edge between two points.
-        def find_or_build_edge(ancestor,descendent)
-          edge = self.find_edge(ancestor,descendent)
+        def find_or_build_edge(ancestor,descendant)
+          edge = self.find_edge(ancestor,descendant)
           return edge unless edge.nil?
-          return build_edge(ancestor,descendent)
+          return build_edge(ancestor,descendant)
         end
         
         #Creates an edge between two points using save
-        def create_edge(ancestor,descendent)
-          link = self.find_link(ancestor,descendent)
+        def create_edge(ancestor,descendant)
+          link = self.find_link(ancestor,descendant)
           if link.nil?
-            edge = self.build_edge(ancestor,descendent)
+            edge = self.build_edge(ancestor,descendant)
             return edge.save
           else
             link.make_direct
@@ -392,10 +425,10 @@ module ActiveRecord
         end
         
         #Creates an edge between two points using save! Returns created edge
-        def create_edge!(ancestor,descendent)
-          link = self.find_link(ancestor,descendent)
+        def create_edge!(ancestor,descendant)
+          link = self.find_link(ancestor,descendant)
           if link.nil?
-            edge = self.build_edge(ancestor,descendent)
+            edge = self.build_edge(ancestor,descendant)
             edge.save!
             return edge
           else
@@ -406,28 +439,28 @@ module ActiveRecord
         end
         
         #Alias for create_edge
-        def connect(ancestor,descendent)
-            return self.create_edge(ancestor,descendent)
+        def connect(ancestor,descendant)
+            return self.create_edge(ancestor,descendant)
         end
         
         #Alias for create_edge!
-        def connect!(ancestor,descendent)
-            return self.create_edge!(ancestor,descendent)
+        def connect!(ancestor,descendant)
+            return self.create_edge!(ancestor,descendant)
         end
         
         #Determines if a link exists between two points
-        def connected?(ancestor,descendent)
-          return !self.find_link(ancestor,descendent).nil?
+        def connected?(ancestor,descendant)
+          return !self.find_link(ancestor,descendant).nil?
         end
         
         #Determines if an edge exists between two points
-        def edge?(ancestor,descendent)
-          return !self.find_edge(ancestor,descendent).nil?
+        def edge?(ancestor,descendant)
+          return !self.find_edge(ancestor,descendant).nil?
         end
         
         #Alias for edge
-        def direct?(ancestor,descendent)
-          return self.edge?(ancestor,descendent)
+        def direct?(ancestor,descendant)
+          return self.edge?(ancestor,descendant)
         end        
       end
       
@@ -437,8 +470,8 @@ module ActiveRecord
           return self[ancestor_type_column_name]
         end
         
-        def descendent_type
-          return self[descendent_type_column_name]
+        def descendant_type
+          return self[descendant_type_column_name]
         end
       end
       
@@ -536,9 +569,9 @@ module ActiveRecord
           return self[ancestor_id_column_name]
         end
         
-        #Id of the descendent
-        def descendent_id
-          return self[descendent_id_column_name]
+        #Id of the descendant
+        def descendant_id
+          return self[descendant_id_column_name]
         end
         
         #Count of the edge, ie the edge exists in X ways
@@ -580,7 +613,7 @@ module ActiveRecord
         
         #All links that end at the source
         def links_to_source
-          self.class.with_descendent_point(self.source)
+          self.class.with_descendant_point(self.source)
         end
         
         #all links that start from the sink
