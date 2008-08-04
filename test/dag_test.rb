@@ -9,7 +9,7 @@ ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :dbfile => ":memo
 
 #Used for basic graph link testing
 class Default < ActiveRecord::Base
-  acts_as_dag_links :class_name => 'Node'
+  acts_as_dag_links :node_class_name => 'Node'
   set_table_name 'edges'
 end
 
@@ -21,7 +21,7 @@ end
 
 #Used for redefinition testing
 class Redefiner < ActiveRecord::Base
-  acts_as_dag_links :class_name => 'Redefiner',
+  acts_as_dag_links :node_class_name => 'Redefiner',
     :direct_column => 'd', 
     :count_column => 'c',
     :ancestor_id_column => 'foo_id',
@@ -30,32 +30,38 @@ class Redefiner < ActiveRecord::Base
 end
 
 class Node < ActiveRecord::Base
-  has_dag_links :class_name => 'Default'
+  has_dag_links :link_class_name => 'Default'
   set_table_name 'nodes'
 end
 
 class RedefNode < ActiveRecord::Base
-  has_dag_links :class_name => 'Redefiner'
+  has_dag_links :link_class_name => 'Redefiner'
   set_table_name 'redef_nodes'
 end
 
 class AlphaNode < ActiveRecord::Base
-  has_dag_links :class_name => 'Poly'
+  has_dag_links :link_class_name => 'Poly',
+    :descendant_class_names => ['BetaNode','GammaNode','ZetaNode']
   set_table_name 'alpha_nodes'
 end
 
 class BetaNode < ActiveRecord::Base
-  has_dag_links :class_name => 'Poly'
+  has_dag_links :link_class_name => 'Poly',
+    :ancestor_class_names => ['AlphaNode','BetaNode'],
+    :descendant_class_names => ['BetaNode','GammaNode','ZetaNode']
   set_table_name 'beta_nodes'
 end
 
 class GammaNode < ActiveRecord::Base
-  has_dag_links :class_name => 'Poly'
+  has_dag_links :link_class_name => 'Poly',
+    :ancestor_class_names => ['AlphaNode','BetaNode','GammaNode'],
+    :descendant_class_names => ['GammaNode','ZetaNode']
   set_table_name 'gamma_nodes'
 end
 
 class ZetaNode < ActiveRecord::Base
-  has_dag_links :class_name => 'Poly'
+  has_dag_links :link_class_name => 'Poly',
+    :ancestor_class_names => ['AlphaNode','BetaNode','GammaNode']
   set_table_name 'zeta_nodes'
 end
 
@@ -530,8 +536,12 @@ class DagTest < Test::Unit::TestCase
     assert_equal c, indirect.descendant 
   end
   
-  #Tests has_many injection using builds for ancestor
-  def test_has_many_injection_ancestor
+  ##########################
+  #TESTS FOR has_dag_links #
+  ##########################
+  
+  #Tests has_many links_as_ancestor
+  def test_has_many_links_as_ancestor
     a = Node.create!
     b = Node.create!
     e = a.links_as_ancestor.build
@@ -541,8 +551,8 @@ class DagTest < Test::Unit::TestCase
     assert_equal e.descendant, b
   end
   
-  #Tests has_many injection using builds for descendant
-  def test_has_many_injection_descendant
+  #Tests has_many links_as_descendant
+  def test_has_many_links_as_descendant
     a = Node.create!
     b = Node.create!
     e = b.links_as_descendant.build
@@ -552,8 +562,8 @@ class DagTest < Test::Unit::TestCase
     assert_equal e.descendant, b
   end
   
-  #Tests has_many injection using builds for parent
-  def test_has_many_injection_parent
+  #Tests has_many links_as_parent
+  def test_has_many_links_as_parent
     a = Node.create!
     b = Node.create!
     e = a.links_as_parent.build
@@ -563,8 +573,8 @@ class DagTest < Test::Unit::TestCase
     assert_equal e.descendant, b
   end
   
-  #Tests has_many injection using builds for child
-  def test_has_many_injection_child
+  #Tests has_many links_as_child
+  def test_has_many_links_as_child
     a = Node.create!
     b = Node.create!
     e = b.links_as_child.build
@@ -574,8 +584,8 @@ class DagTest < Test::Unit::TestCase
     assert_equal e.descendant, b
   end
   
-  #Tests has_many through injection of descendants association
-  def test_has_many_through_injection_descendants
+  #Tests has_many descendants
+  def test_has_many_descendants
     a = Node.create!
     b = Node.create!
     a.descendants << b
@@ -583,8 +593,8 @@ class DagTest < Test::Unit::TestCase
     assert !e.nil? 
   end
   
-  #Tests has_many through injection of ancestors association
-  def test_has_many_through_injection_ancestors
+  #Tests has_many ancestors
+  def test_has_many_ancestors
     a = Node.create!
     b = Node.create!
     b.ancestors << a
@@ -592,8 +602,8 @@ class DagTest < Test::Unit::TestCase
     assert !e.nil? 
   end
   
-  #Tests has_many through injection of children association
-  def test_has_many_through_injection_children
+  #Tests has_many children
+  def test_has_many_children
     a = Node.create!
     b = Node.create!
     a.children << b
@@ -601,14 +611,14 @@ class DagTest < Test::Unit::TestCase
     assert !e.nil? 
   end
   
-  #Tests has_many through injection of parents association
-  def test_has_many_through_injection_parents
+  #Tests has_many parents
+  def test_has_many_parents
     a = Node.create!
     b = Node.create!
     b.parents << a
     e = Default.find_link(a,b)
     assert !e.nil? 
-  end
+  end 
   
   #Tests leaf? instance method
   def test_leaf_instance_method
@@ -634,56 +644,173 @@ class DagTest < Test::Unit::TestCase
     assert a.root?
   end
   
-  #def test_manual_create_lonely_edge
-  #  a = Node.create!
-  #  b = Node.create!
-  #  edge = Default.new(:ancestor => a, :descendant => b)
-  #  edge.save!
-  #  assert_equal a.links_as_ancestor.first, edge
-  #  assert_equal b.links_as_descendant.first, edge
-  #  assert_equal 1, edge.count
-  #  assert_equal true, edge.direct?
-  #end
-    
-    
-    
-    
+  #Tests has_many links_as_ancestor
+  def test_has_many_links_as_ancestor_poly
+    a = BetaNode.create!
+    b = BetaNode.create!
+    e = a.links_as_ancestor.build
+    e.descendant = b
+    e.save!
+    assert_equal e.ancestor, a
+    assert_equal e.descendant, b
+  end
   
-  #more column names
-
-  #def test_ancestor_id_column_protected_from_assignment_on_update
-  #  assert_raises(ActiveRecord::ActiveRecordError) { d = Default.new(:ancestor_id => 1, :descendant_id => 2) }
-  #end
-  #
-  #def test_descendant_id_column_protected_from_assignment_on_update
-  #  assert_raises(ActiveRecord::ActiveRecordError) { Default.new.descendant_id = 1 }
-  #end
-  #
-  #def test_ancestor_type_column_protected_from_assignment_on_update
-  #  assert_raises(ActiveRecord::ActiveRecordError) { Poly.new.ancestor_type = 'A' }
-  #end
-  #
-  #def test_descendant_type_column_protected_from_assignment_on_update
-  #  assert_raises(ActiveRecord::ActiveRecordError) { Poly.new.descendant_type = 'A' }
-  #end
+  #Tests has_many links_as_descendant
+  def test_has_many_links_as_descendant_poly
+    a = BetaNode.create!
+    b = BetaNode.create!
+    e = b.links_as_descendant.build
+    e.ancestor = a
+    e.save!
+    assert_equal e.ancestor, a
+    assert_equal e.descendant, b
+  end
   
-  #def test_columns_protected_on_initialize
-  #  c = Default.new(:count => 4, :direct => false)
-  #  assert_nil c.count
-  #  assert_nil c.direct
-    #r = Redefiner.new(:c => 4, :d => false)
-    #assert_nil r.count
-    #assert_nil r.direct
-  #end
+  #Tests has_many links_as_parent
+  def test_has_many_links_as_parent_poly
+    a = BetaNode.create!
+    b = BetaNode.create!
+    e = a.links_as_parent.build
+    e.descendant = b
+    e.save!
+    assert_equal e.ancestor, a
+    assert_equal e.descendant, b
+  end
   
-  #changed and was
-
+  #Tests has_many links_as_child
+  def test_has_many_links_as_child_poly
+    a = BetaNode.create!
+    b = BetaNode.create!
+    e = b.links_as_child.build
+    e.ancestor = a
+    e.save!
+    assert_equal e.ancestor, a
+    assert_equal e.descendant, b
+  end
   
-  #def test_for_class_method
-  #  
-  #end
+  #Tests leaf? instance method
+  def test_leaf_instance_method_poly
+    a = BetaNode.create!
+    assert a.leaf?
+    b = BetaNode.create!
+    a.child_beta_nodes << b
+    a.reload
+    b.reload
+    assert !a.leaf?
+    assert b.leaf?
+  end
   
+  #Tests root? instance method
+  def test_root_instance_method_poly
+    a = BetaNode.create!
+    b = BetaNode.create!
+    assert b.root?
+    a.child_beta_nodes << b
+    a.reload
+    b.reload
+    assert !b.root?
+    assert a.root?
+  end
   
+  #Tests has_many links_as_ancestor_for_*
+  def test_has_many_links_as_ancestor_for
+    a = AlphaNode.create!
+    b = BetaNode.create!
+    e = a.links_as_ancestor_for_beta_nodes.build
+    e.descendant = b
+    e.save!
+    assert_equal e.ancestor, a
+    assert_equal e.descendant, b
+  end
   
-  #more protections  
+  #Tests has_many links_as_descendant_for_*
+  def test_has_many_links_as_descendant_for
+    a = AlphaNode.create!
+    b = BetaNode.create!
+    e = b.links_as_descendant_for_alpha_nodes.build
+    e.ancestor = a
+    e.save!
+    assert_equal e.ancestor, a
+    assert_equal e.descendant, b
+  end
+  
+  #Tests has_many links_as_parent_for_*
+  def test_has_many_links_as_parent_for
+    a = AlphaNode.create!
+    b = BetaNode.create!
+    e = a.links_as_parent_for_beta_nodes.build
+    e.descendant = b
+    e.save!
+    assert_equal e.ancestor, a
+    assert_equal e.descendant, b
+  end
+  
+  #Tests has_many links_as_child_for_*
+  def test_has_many_links_as_child_for
+    a = AlphaNode.create!
+    b = BetaNode.create!
+    e = b.links_as_child_for_alpha_nodes.build
+    e.ancestor = a
+    e.save!
+    assert_equal e.ancestor, a
+    assert_equal e.descendant, b
+  end
+  
+  #Tests has_many descendant_type
+  def test_has_many_descendant_dvds
+    a = AlphaNode.create!
+    b = BetaNode.create!
+    a.descendant_beta_nodes << b
+    e = Poly.find_link(a,b)
+    assert !e.nil? 
+  end
+  
+  #Tests has_many ancestor_type
+  def test_has_many_ancestor_dvds
+    a = AlphaNode.create!
+    b = BetaNode.create!
+    b.ancestor_alpha_nodes << a
+    e = Poly.find_link(a,b)
+    assert !e.nil? 
+  end
+  
+  #Tests has_many child_dvds
+  def test_has_many_child_dvds
+    a = AlphaNode.create!
+    b = BetaNode.create!
+    a.child_beta_nodes << b
+    e = Poly.find_link(a,b)
+    assert !e.nil? 
+  end
+  
+  #Tests has_many parents
+  def test_has_many_parent_dvds
+    a = AlphaNode.create!
+    b = BetaNode.create!
+    b.parent_alpha_nodes << a
+    e = Poly.find_link(a,b)
+    assert !e.nil? 
+  end 
+  
+  #Tests leaf_for_*? instance method
+  def test_leaf_for_instance_method
+    a = BetaNode.create!
+    b = BetaNode.create!
+    assert a.leaf_for_beta_nodes?
+    a.ancestor_beta_nodes << b
+    a.reload
+    b.reload
+    assert !b.leaf_for_beta_nodes?
+  end
+  
+  #Tests root_for_*? instance method
+  def test_root_for_instance_method
+    a = BetaNode.create!
+    b = BetaNode.create!
+    assert a.root_for_beta_nodes?
+    a.descendant_beta_nodes << b
+    a.reload
+    b.reload
+    assert !b.root_for_beta_nodes?
+  end
 end

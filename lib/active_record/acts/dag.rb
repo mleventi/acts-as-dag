@@ -20,7 +20,7 @@ module ActiveRecord
           
           unless conf[:polymorphic]
             if conf[:node_class_name].nil?
-              raise ActiveRecord::ActiveRecordError, 'Nonpolymorphic graphs need to specify :class_name with the recieving class like belong_to'
+              raise ActiveRecord::ActiveRecordError, 'Nonpolymorphic graphs need to specify :node_class_name with the recieving class like belong_to'
             end 
           end
             
@@ -142,8 +142,8 @@ module ActiveRecord
           conf.update(options)
         
           #check that class_name is filled
-          if conf[:class_name].nil?
-            raise ActiveRecord::ActiveRecordError, "has_dag must be provided with :class_name option"
+          if conf[:link_class_name].nil?
+            raise ActiveRecord::ActiveRecordError, "has_dag must be provided with :link_class_name option"
           end
         
           #add trailing '_' to prefix
@@ -152,48 +152,44 @@ module ActiveRecord
           end
         
           prefix = conf[:prefix]
-          dag_link_class_name = conf[:class_name]
-          dag_link_class = conf[:class_name].constantize        
+          dag_link_class_name = conf[:link_class_name]
+          dag_link_class = conf[:link_class_name].constantize        
         
           if dag_link_class.acts_as_dag_polymorphic?
             self.class_eval <<-EOL
               has_many :#{prefix}links_as_ancestor, :as => :ancestor, :class_name => '#{dag_link_class_name}'
               has_many :#{prefix}links_as_descendant, :as => :descendant, :class_name => '#{dag_link_class_name}'
             
-              has_many :#{prefix}ancestors, :through => :#{prefix}links_as_descendant, :source => :ancestor
-              has_many :#{prefix}descendants, :through => :#{prefix}links_as_ancestor, :source => :descendant
-            
               has_many :#{prefix}links_as_parent, :as => :ancestor, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.direct_column_name}' => true}
               has_many :#{prefix}links_as_child, :as => :descendant, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.direct_column_name}' => true}
-            
-              has_many :parents, :through => :#{prefix}links_as_child, :source => :ancestor
-              has_many :children, :through => :#{prefix}links_as_parent, :source => :descendant
             EOL
           
             conf[:ancestor_class_names].each do |class_name|
+              table_name = class_name.tableize
               self.class_eval <<-EOL
-                has_many :#{prefix}links_as_descendant_for_#{class_name.tablelize}, :as => :descendant, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.ancestor_type_column_name}' => '#{class_name}'}
-                has_many :#{prefix}ancestor_#{class_name.tablelize}, :through => :#{prefix}links_as_descendant_for_#{class_name.tablelize}, :source => :ancestor, :source_type => '#{class_name}'
+                has_many :#{prefix}links_as_descendant_for_#{table_name}, :as => :descendant, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.ancestor_type_column_name}' => '#{class_name}'}
+                has_many :#{prefix}ancestor_#{table_name}, :through => :#{prefix}links_as_descendant_for_#{table_name}, :source => :ancestor, :source_type => '#{class_name}'
             
-                has_many :#{prefix}links_as_child_for_#{class_name.tablelize}, :as => :descendant, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.ancestor_type_column_name}' => '#{class_name}','#{dag_link_class.direct_column_name}' => true}
-                has_many :#{prefix}parent_#{class_name.tablelize}, :through => :#{prefix}links_as_child_for_#{class_name.tablelize}, :source => :ancestor, :source_type => '#{class_name}'
+                has_many :#{prefix}links_as_child_for_#{table_name}, :as => :descendant, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.ancestor_type_column_name}' => '#{class_name}','#{dag_link_class.direct_column_name}' => true}
+                has_many :#{prefix}parent_#{table_name}, :through => :#{prefix}links_as_child_for_#{table_name}, :source => :ancestor, :source_type => '#{class_name}'
               
-                def #{prefix}leaf_for_#{class_name.tablelize}?
-                  return self.links_as_descendant_for_#{class_name.tablelize}.empty?
+                def #{prefix}root_for_#{table_name}?
+                  return self.links_as_descendant_for_#{table_name}.empty?
                 end
               EOL
             end
           
             conf[:descendant_class_names].each do |class_name|
+              table_name = class_name.tableize
               self.class_eval <<-EOL
-                has_many :#{prefix}links_as_ancestor_for_#{class_name.tablelize}, :as => :ancestor, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.descendant_type_column_name}' => '#{class_name}'}
-                has_many :#{prefix}descendant_#{class_name.tablelize}, :through => :#{prefix}links_as_ancestor_for_#{class_name.tablelize}, :source => :descendant, :source_type => '#{class_name}'
+                has_many :#{prefix}links_as_ancestor_for_#{table_name}, :as => :ancestor, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.descendant_type_column_name}' => '#{class_name}'}
+                has_many :#{prefix}descendant_#{table_name}, :through => :#{prefix}links_as_ancestor_for_#{table_name}, :source => :descendant, :source_type => '#{class_name}'
             
-                has_many :#{prefix}links_as_parent_for_#{class_name.tablelize}, :as => :ancestor, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.descendant_type_column_name}' => '#{class_name}','#{dag_link_class.direct_column_name}' => true}
-                has_many :#{prefix}child_#{class_name.tablelize}, :through => :#{prefix}links_as_parent_for_#{class_name.tablelize}, :source => :descendant, :source_type => '#{class_name}'
+                has_many :#{prefix}links_as_parent_for_#{table_name}, :as => :ancestor, :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.descendant_type_column_name}' => '#{class_name}','#{dag_link_class.direct_column_name}' => true}
+                has_many :#{prefix}child_#{table_name}, :through => :#{prefix}links_as_parent_for_#{table_name}, :source => :descendant, :source_type => '#{class_name}'
               
-                def #{prefix}root_for_#{class_name.tablelize}?
-                  return self.links_as_ancestor_for_#{class_name.tablelize}.empty?
+                def #{prefix}leaf_for_#{table_name}?
+                  return self.links_as_ancestor_for_#{table_name}.empty?
                 end
               EOL
             end
@@ -208,19 +204,19 @@ module ActiveRecord
               has_many :#{prefix}links_as_parent, :foreign_key => '#{dag_link_class.ancestor_id_column_name}', :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.direct_column_name}' => true}
               has_many :#{prefix}links_as_child, :foreign_key => '#{dag_link_class.descendant_id_column_name}', :class_name => '#{dag_link_class_name}', :conditions => {'#{dag_link_class.direct_column_name}' => true}
                         
-              has_many :parents, :through => :#{prefix}links_as_child, :source => :ancestor
-              has_many :children, :through => :#{prefix}links_as_parent, :source => :descendant
+              has_many :#{prefix}parents, :through => :#{prefix}links_as_child, :source => :ancestor
+              has_many :#{prefix}children, :through => :#{prefix}links_as_parent, :source => :descendant
             EOL
           end
           self.class_eval <<-EOL
             #Is the node a leaf (no outgoing edges)
             def #{prefix}leaf?
-              return self.links_as_ancestor.empty?
+              return self.#{prefix}links_as_ancestor.empty?
             end
 
             #Is the node a root (no incoming edges)
             def #{prefix}root?
-              return self.links_as_descendant.empty?
+              return self.#{prefix}links_as_descendant.empty?
             end
           EOL
         end
@@ -588,6 +584,11 @@ module ActiveRecord
         def direct?
           return self[direct_column_name]
         end
+        
+        #Whether the link is an edge?
+        def edge?
+          return self[direct_column_name]
+        end 
         
         #Makes the link direct, ie an edge
         def make_direct

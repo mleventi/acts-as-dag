@@ -32,6 +32,12 @@ This uses named_scope so your going to need Rails 2.1 or above.
 
 	script/plugin install git://github.com/mleventi/acts-as-dag.git
 	
+== Terminology
+
+- Node: A source or destination of a link or edge in the graph.
+- Edge: A direct connection between two nodes. These can only be created by your application.
+- Link: A indirect connection between two nodes. Denotes the existence of a path. These can only be created by the plugin internally.
+	
 == Singleton Methods
 
 This section outlines the two methods that need to be included in your ActiveRecord models. In general this whole plugin can be thought of as one big has_many association.
@@ -42,7 +48,9 @@ This singleton class method needs to be called in your ActiveRecord model that r
 
 	acts_as_dag_links :node_class_name => 'Class Name of the node model'
 
-If the graph is polymorphic :node_class_name is unnecessary.
+If the graph is polymorphic :node_class_name is unnecessary. A polymorphic call would be:
+
+	acts_as_dag_links :polymorphic => true
 
 ==== Optional Parameters
 
@@ -79,33 +87,74 @@ And for polymorphic graphs...
 		t.integer :count
 	end
 	
-==== Injected Associations and Named Scopes
+==== Injected Associations
 
-By calling the acts_as_dag_links method you get a few goodies in your link model along with the logic that keeps the graph uncorrupted, and free of cycles. Below is a peak at some sudo code representative of what gets injected. For an injected method list consult the rdocs.
+Calling acts_as_dag_links method in the class definition injects the following associations.
 
-	class Link < ActiveRecord::Base
-		acts_as_dag_links :node_class_name => 'Node'
-		
-		#Ancestor Node
-		belongs_to :ancestor
-		#Descendant Node
-		belongs_to :descendant
-		
-		#Scoped links with ancestor...
-		named_scope :with_ancestor(ancestor_instance)
-		#Scoped links with descendant...
-		named_scope :with_descendant(descendent_instance)
-		
-		#Scoped links that are direct aka edges
-		named_scope :direct
-		#Scope links that are indirect
-		named_scope :indirect
-		
-		#Scoped actual ancestors
-		named_scope :ancestor_nodes, :joins => :ancestor
-		#Scoped actual descendants
-		named_scope :descendant_nodes, :joins => :descendant
-	end
+	belongs_to :ancestor
+	belongs_to :descendant
+	
+==== Injected Named Scopes
+
+The recieves the following named scopes. The following two scopes narrows a query to only links with a certain ancestor or descendant
+
+	named_scope :with_ancestor(ancestor_instance)
+	named_scope :with_descendant(descendant_instance)
+	
+The scopes below narrow queries to direct or indirect links
+
+	named_scope :direct
+	named_scope :indirect
+	
+The scopes below attach the actual ancestor or descendant nodes
+
+	named_scope :ancestor_nodes, :joins => :ancestor
+	named_scope :descendant_nodes, :joins => :descendant
+	
+==== Injected Class Methods
+
+Several class methods get added to the link model to make it easier to find and create edges, and find links.
+
+	#Finds an edge of returns nil
+	self.find_edge(ancestor,descendant)
+	#Returns true if an edge exists
+	self.edge?(ancestor,descendant)
+	self.direct?(ancestor,descendant)
+	
+	#Finds a link or returns nil
+	self.find_link(ancestor,descendant)
+	#Returns true if a link exists
+	self.connected?(ancestor,descendant)
+	
+	#Creates an edge between an ancestor and descendant
+	self.create_edge(ancestor,descendant)
+	self.connect(ancestor,descendant)
+	
+	#Creates an edge using save! between an ancestor and descendant
+	self.create_edge!(ancestor,descendant)
+	self.connect!(ancestor,descendant)
+	
+	#Builds an edge between an ancestor and descendant, returning an unsaved edge
+	self.build_edge(ancestor,descendant)
+	
+	#Finds and returns the edge if it exists, or calls build_edge
+	self.find_or_build_edge(ancestor,descendant)
+	
+==== Injected Instance Methods
+
+Here is a sample of some of the important instance methods that get added to the link model.
+
+	#whether the current edge can be destroyed. If the edge also has a link, ie it can be made indirectly, then it cannot be 	destroyed.	
+	destroyable?()
+	
+	#Make the edge indirect. Removes the direct edge but keeps the indirect links
+	make_indirect()
+	
+	#Makes the link direct. Adds a direct edge onto a link.
+	make_direct()
+	
+	#Number of unique ways to get from the ancestor to the descendant
+	count()
 	
 === has_dag_links
 
@@ -115,7 +164,7 @@ This singleton class method can be optionally called from the node ActiveRecord 
 
 ==== Optional Parameters
 
-- :prefix. By default, ''. Use a prefix if your model calls has_dag_links for multiple link classes
+- :prefix. By default, ''. Use a prefix if your model calls has_dag_links for multiple link classes.
 
 If your link class holds a polymorphic graph you also have...
 
@@ -133,28 +182,69 @@ has_dag_links provides a number of has_many and has_many_through associations.
 
 Note that if a record is in links_as_parent it will be in links_as_ancestor. Also note that adding records to either produces the same result as you can only add direct links (edges). Currently there is also an error if a record exists for links_as_ancestor and you try to add it to links_as_parent. The correct way is to use the make_direct method on the link instance.
 
-Using each of the above associations as the :through option the following are also injected
+For non-polymorphic graphs you also get the following associations. These find the actual ancestors as opposed to the link instances.
 
 - ancestors
 - descendants
 - parents
 - children
 
-For polymorphic graphs where the ancestor_class_names or descendant_class_names includes class names the following associations are also built. For each ancestor_class_name:
+For polymorphic graphs where the ancestor_class_names or descendant_class_names includes the specified class names the following associations are also built. For each ancestor_class_name:
 
--links_as_descendant_for_#{ancestor_class_name.tablelize}
--links_as_child_for_#{ancestor_class_name.tablelize}
--ancestor_#{ancestor_class_name.tablelize}
--parent_#{ancestor_class_name.tablelize}
+-links_as_descendant_for_#{ancestor_class_name.tableize}
+-links_as_child_for_#{ancestor_class_name.tableize}
+-ancestor_#{ancestor_class_name.tableize}
+-parent_#{ancestor_class_name.tableize}
 
 For each descendant_class_name
 
--links_as_ancestor_for_#{ancestor_class_name.tablelize}
--links_as_parent_for_#{ancestor_class_name.tablelize}
--descendant_#{ancestor_class_name.tablelize}
--child_#{ancestor_class_name.tablelize}
+-links_as_ancestor_for_#{ancestor_class_name.tableize}
+-links_as_parent_for_#{ancestor_class_name.tableize}
+-descendant_#{ancestor_class_name.tableize}
+-child_#{ancestor_class_name.tableize}
+
+==== Injected Instance Methods
+
+Along with the above associations a number of instance methods are defined.
+
+-leaf? , Boolean value as to whether the current node is a leaf (no descendants)
+-root? , Boolean value as to whether the current node is a root (no ancestors)
+
+With polymorphic graphs for each ancestor_class_name another method is defined.
+
+-root_for_#{ancestor_class_name.tableize}? , Returns true if the node has no ancestors of the represented type.
+
+Likewise for each descendant_class_name.
+
+-leaf_for_#{descendent_class_name.tableize}? , Returns true if the node has no descendants of the represented type.
 
 == Usage
+
+This section goes over some basic usage examples and presents some caveats.
+
+=== Basic Non-polymorphic Graphs.
+
+	class Node < ActiveRecord::Base
+		has_dag_links :link_class_name => 'Link'
+	end
+	
+	class Link < ActiveRecord::Base
+		acts_as_dag_links :node_class_name => 'Node'
+	end
+	
+	#Adding an edge
+	parent_node = Node.create!
+	child_node = Node.create!
+	parent_node.children << child_node
+	
+	#Removing it
+	link = Link.find_link(parent_node,child_node)
+	if link.destroyable?
+		link.destory
+	else
+		link.make_indirect
+		link.save!
+	end
 
 === Caveats for Adding, Updating, Deleting Links
 
