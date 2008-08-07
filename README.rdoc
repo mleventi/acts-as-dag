@@ -23,7 +23,7 @@ Yes, but I think they aren't as fast or feature filled. Flogic has a good simple
 * Instance method injections (root?,leaf?) for graph nodes
 * O(1) lookups, no breath or depth first searching
 * O(x*y) insert, update and delete, where x & y are the number of ancestors and descendants of a node.
-
+ 
 == Requirements
 
 This uses named_scope so your going to need Rails 2.1 or above.
