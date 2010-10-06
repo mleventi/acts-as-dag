@@ -28,9 +28,11 @@ Yes, but I think they aren't as fast or feature filled. Flogic has a good simple
 
 This uses named_scope so your going to need Rails 2.1 or above.
 
+Currently tested using Rails 2.3.8. Working on a separate version of acts-as-dag that is based on Rails 3.x and use all of the new ActiveRecord goodness found there.
+
 == Installation
 
-	script/plugin install git://github.com/mleventi/acts-as-dag.git
+	gem install acts-as-dag
 	
 == Terminology
 
@@ -272,6 +274,9 @@ Whoever did the awesome_nested_set plugin. This is my first plugin and I used th
 
 == Credit
 
-Authors:: Matthew Leventi
+Authors:: Matthew Leventi, Robert Schmitt
 
 Algorithm and plugin designed by Matthew Leventi Email:(first letter of my first name followed by my last name @gmail.com). Im open to questions, very open to bugs, and even more receptive of bug fixes. I am also currently (August 2008) looking for a job just having graduated University of Rochester.
+
+Robert Schmitt: I have modified the Rake system to support Jeweler to build this as a Ruby gem that can be installed and managed through the gem system.
+

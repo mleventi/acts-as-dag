@@ -570,9 +570,9 @@ module ActiveRecord
 			module EdgeInstanceMethods
 				
 				attr_accessor :do_not_perpetuate
-				
+
 				#Validations on model instance creation. Ensures no duplicate links, no cycles, and correct count and direct attributes
-				def validate_on_create 
+				def validate_on_create
 					#make sure no duplicates
 					if self.class.find_link(self.source,self.sink)
 						self.errors.add_to_base('Link already exists between these points')
