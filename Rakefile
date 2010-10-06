@@ -30,6 +30,7 @@ begin
     gemspec.description = "Acts As Dag, short for Acts As Directed Acyclic Graph, is a gem which allows you to represent DAG hierarchy using your ActiveRecord models."
     gemspec.authors = ["Matthew Leventi", "Robert Schmitt"]
     gemspec.email = "mleventi@gmail.com"
+    gemspec.rubyforge_project = "acts-as-dag"
     gemspec.homepage = "http://github.com/resgraph/acts-as-dag"
     gemspec.files = Dir["{lib}/**/*", "{test}/**/*"]
   end
