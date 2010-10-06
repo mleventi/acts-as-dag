@@ -20,7 +20,7 @@ module ActiveRecord
 					
 					unless conf[:polymorphic]
 						if conf[:node_class_name].nil?
-							raise ActiveRecord::ActiveRecordError, 'Nonpolymorphic graphs need to specify :node_class_name with the recieving class like belong_to'
+							raise ActiveRecord::ActiveRecordError, 'Non-polymorphic graphs need to specify :node_class_name with the receiving class like belong_to'
 						end 
 					end
 					
