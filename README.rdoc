@@ -28,7 +28,7 @@ Yes, but I think they aren't as fast or feature filled. Flogic has a good simple
 
 This uses named_scope so your going to need Rails 2.1 or above.
 
-Currently tested using Rails 2.3.8. Working on a separate version of acts-as-dag that is based on Rails 3.x and use all of the new ActiveRecord goodness found there.
+Currently tested using Rails 2.3.8 and Ruby 1.9.2-p0. Working on a separate version of acts-as-dag that is based on Rails 3.x and use all of the new ActiveRecord goodness found there.
 
 == Installation
 
