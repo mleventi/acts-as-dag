@@ -27,7 +27,7 @@ begin
   Jeweler::Tasks.new do |gemspec|
     gemspec.name = "acts-as-dag"
     gemspec.summary = "Acts As DAG Gem"
-    gemspec.description = "Acts As Dag, short for Acts As Directed Acyclic Graph, is a gem which allows you to represent DAG hierarchy using your ActiveRecord models."
+    gemspec.description = "Acts As Dag, short for Acts As Directed Acyclic Graph, is a gem which allows you to represent DAG hierarchy using your ActiveRecord models. Versions 1.x were built using Rails 2.x. Versions 2.x were built using Rails 3.x."
     gemspec.authors = ["Matthew Leventi", "Robert Schmitt"]
     gemspec.email = "mleventi@gmail.com"
     gemspec.rubyforge_project = "acts-as-dag"
