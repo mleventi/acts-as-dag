@@ -26,9 +26,15 @@ Yes, but I think they aren't as fast or feature filled. Flogic has a good simple
  
 == Requirements
 
-This uses named_scope so your going to need Rails 2.1 or above.
+Version 1.x of Acts As Dag uses named_scope so your going to need Rails 2.1 or above.
 
-Currently tested using Rails 2.3.8 and Ruby 1.9.2-p0. Working on a separate version of acts-as-dag that is based on Rails 3.x and use all of the new ActiveRecord goodness found there.
+Version 2.x of Acts As Dag uses validate and scope, so you are going to need Rails 3.0 or higher.
+
+Version 1.1.1 tested using Rails 2.3.8 and Ruby 1.9.2-p0.
+
+Version 2.0.0 tested using Rails 3.0.0 and Ruby 1.9.2-p0, without major structural changes to code from the Rails 3 framework. Removes all deprecation warnings I have received while using AAD and Rails 3.0.0.
+
+Version 2.1.x (in development) will be based on Rails 3.0.0 and attempt to use all of the new ActiveRecord goodness found there.
 
 == Installation
 
@@ -278,5 +284,5 @@ Authors:: Matthew Leventi, Robert Schmitt
 
 Algorithm and plugin designed by Matthew Leventi Email:(first letter of my first name followed by my last name @gmail.com). Im open to questions, very open to bugs, and even more receptive of bug fixes. I am also currently (August 2008) looking for a job just having graduated University of Rochester.
 
-Robert Schmitt: I have modified the Rake system to support Jeweler to build this as a Ruby gem that can be installed and managed through the gem system.
+Robert Schmitt: I have modified the Rake system to support Jeweler to build this as a Ruby gem that can be installed and managed through the gem system. Updated to work without deprecation warnings from Rails 3.0.0.
 
