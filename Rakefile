@@ -32,7 +32,7 @@ begin
     gemspec.email = "mleventi@gmail.com"
     gemspec.rubyforge_project = "acts-as-dag"
     gemspec.homepage = "http://github.com/resgraph/acts-as-dag"
-    gemspec.files = Dir["{lib}/**/*", "{test}/**/*"]
+    gemspec.files = FileList["[A-Z]*", "{lib,test}/**/*"]
   end
 rescue
   puts "Jeweler or one of its dependencies is not installed."
