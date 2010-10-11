@@ -1,7 +1,6 @@
 require 'test/unit'
 require 'rubygems'
 gem 'activerecord', '= 3.0.0'
-require 'active_record'
 require "./init"
 
 

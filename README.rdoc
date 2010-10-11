@@ -38,7 +38,7 @@ Version 2.1.x (in development) will be based on Rails 3.0.0 and attempt to use a
 
 == Installation
 
-	gem install acts-as-dag
+    gem install acts-as-dag
 	
 == Terminology
 
