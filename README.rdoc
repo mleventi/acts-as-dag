@@ -39,6 +39,10 @@ Version 2.x of Acts As Dag uses validate and scope/where and ActiveModel::Valida
 == Installation
 
     gem install acts-as-dag
+
+Add to your Gemfile:
+
+    gem 'acts-as-dag', :require => 'dag'
 	
 == Terminology
 

@@ -65,45 +65,45 @@ module Dag
       belongs_to :ancestor, :polymorphic => true
       belongs_to :descendant, :polymorphic => true
 
-      validates ancestor_type_column_name.to_sym,   :presence => true
+      validates ancestor_type_column_name.to_sym, :presence => true
       validates descendant_type_column_name.to_sym, :presence => true
-      validates ancestor_id_column_name.to_sym,     :uniqueness => {:scope => [ancestor_type_column_name, descendant_type_column_name, descendant_id_column_name]}
+      validates ancestor_id_column_name.to_sym, :uniqueness => {:scope => [ancestor_type_column_name, descendant_type_column_name, descendant_id_column_name]}
 
-      scope :with_ancestor,         lambda { |ancestor|   where(ancestor_id_column_name => ancestor.id, ancestor_type_column_name => ancestor.class.to_s) }
-      scope :with_descendant,       lambda { |descendant| where(descendant_id_column_name => descendant.id, descendant_type_column_name => descendant.class.to_s) }
+      scope :with_ancestor, lambda { |ancestor| where(ancestor_id_column_name => ancestor.id, ancestor_type_column_name => ancestor.class.to_s) }
+      scope :with_descendant, lambda { |descendant| where(descendant_id_column_name => descendant.id, descendant_type_column_name => descendant.class.to_s) }
 
-      scope :with_ancestor_point,   lambda { |point|      where(ancestor_id_column_name => point.id, ancestor_type_column_name => point.type) }
-      scope :with_descendant_point, lambda { |point|      where(descendant_id_column_name => point.id, descendant_type_column_name => point.type) }
+      scope :with_ancestor_point, lambda { |point| where(ancestor_id_column_name => point.id, ancestor_type_column_name => point.type) }
+      scope :with_descendant_point, lambda { |point| where(descendant_id_column_name => point.id, descendant_type_column_name => point.type) }
 
       extend Polymorphic
       include Polymorphic
     else
-      belongs_to :ancestor,   :foreign_key => ancestor_id_column_name, :class_name => acts_as_dag_options[:node_class_name]
+      belongs_to :ancestor, :foreign_key => ancestor_id_column_name, :class_name => acts_as_dag_options[:node_class_name]
       belongs_to :descendant, :foreign_key => descendant_id_column_name, :class_name => acts_as_dag_options[:node_class_name]
 
       validates ancestor_id_column_name.to_sym, :uniqueness => {:scope => [descendant_id_column_name]}
 
-      scope :with_ancestor,         lambda { |ancestor|   where(ancestor_id_column_name => ancestor.id) }
-      scope :with_descendant,       lambda { |descendant| where(descendant_id_column_name => descendant.id) }
+      scope :with_ancestor, lambda { |ancestor| where(ancestor_id_column_name => ancestor.id) }
+      scope :with_descendant, lambda { |descendant| where(descendant_id_column_name => descendant.id) }
 
-      scope :with_ancestor_point,   lambda { |point|      where(ancestor_id_column_name => point.id) }
-      scope :with_descendant_point, lambda { |point|      where(descendant_id_column_name => point.id) }
+      scope :with_ancestor_point, lambda { |point| where(ancestor_id_column_name => point.id) }
+      scope :with_descendant_point, lambda { |point| where(descendant_id_column_name => point.id) }
 
       extend Standard
       include Standard
     end
 
     # TODO: rename? breaks when using 'where' query because :direct scope name and :direct => true parameter conflict?
-    scope :direct,            :conditions => {:direct => true}
-    scope :indirect,          :conditions => {:direct => false}
+    scope :direct, :conditions => {:direct => true}
+    scope :indirect, :conditions => {:direct => false}
 
-    scope :ancestor_nodes,    :joins => :ancestor
-    scope :descendant_nodes,  :joins => :descendant
+    scope :ancestor_nodes, :joins => :ancestor
+    scope :descendant_nodes, :joins => :descendant
 
-    validates ancestor_id_column_name.to_sym,   :presence => true,
-                                                :numericality => true
+    validates ancestor_id_column_name.to_sym, :presence => true,
+              :numericality => true
     validates descendant_id_column_name.to_sym, :presence => true,
-                                                :numericality => true
+              :numericality => true
 
     extend Edges
     include Edges
