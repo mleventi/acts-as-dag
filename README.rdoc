@@ -6,6 +6,12 @@ Acts As Dag, short for Acts As Directed Acyclic Graph, is a plugin which allows 
 
 Say you have been using one of the many great plugins that allow for Tree hierarchy like: acts_as_tree or acts_as_nested_set, acts_as_better_nested_set, etc. Yet, you feel something is missing. Tree's are just not good enough. You want to allow each record to have multiple parent objects within a hierarchy as well as multiple children. Then you are going to need a DAG instead of a tree, and thats were this plugin becomes useful.
 
+Version 1.1.1 tested using Rails 2.3.8 and Ruby 1.9.2-p0.
+
+Version 2.0.x tested using Rails 3.0.0 and Ruby 1.9.2-p0, without major structural changes to code from the Rails 3 framework. Removes all deprecation warnings I have received while using AAD and Rails 3.0.0.
+
+Version 2.5.0 is based on Rails 3.0.0 and uses all of the new ActiveModel/ActiveRecord goodness found there.
+
 === What's a DAG?
 
 http://en.wikipedia.org/wiki/Directed_acyclic_graph
@@ -28,13 +34,7 @@ Yes, but I think they aren't as fast or feature filled. Flogic has a good simple
 
 Version 1.x of Acts As Dag uses named_scope so your going to need Rails 2.1 or above.
 
-Version 2.x of Acts As Dag uses validate and scope, so you are going to need Rails 3.0 or higher.
-
-Version 1.1.1 tested using Rails 2.3.8 and Ruby 1.9.2-p0.
-
-Version 2.0.0 tested using Rails 3.0.0 and Ruby 1.9.2-p0, without major structural changes to code from the Rails 3 framework. Removes all deprecation warnings I have received while using AAD and Rails 3.0.0.
-
-Version 2.1.x (in development) will be based on Rails 3.0.0 and attempt to use all of the new ActiveRecord goodness found there.
+Version 2.x of Acts As Dag uses validate and scope/where and ActiveModel::Validator, so you are going to need Rails 3.0 or higher.
 
 == Installation
 
@@ -284,5 +284,4 @@ Authors:: Matthew Leventi, Robert Schmitt
 
 Algorithm and plugin designed by Matthew Leventi Email:(first letter of my first name followed by my last name @gmail.com). Im open to questions, very open to bugs, and even more receptive of bug fixes. I am also currently (August 2008) looking for a job just having graduated University of Rochester.
 
-Robert Schmitt: I have modified the Rake system to support Jeweler to build this as a Ruby gem that can be installed and managed through the gem system. Updated to work without deprecation warnings from Rails 3.0.0.
-
+Gemification and upgrade to Rails 3.0.0 and Ruby 1.9.2 performed by Robert Schmitt. Please feel free to contact me with bug reports and suggestions, and any patches you may have developed/applied.
