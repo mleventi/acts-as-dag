@@ -6,11 +6,11 @@ Acts As Dag, short for Acts As Directed Acyclic Graph, is a plugin which allows 
 
 Say you have been using one of the many great plugins that allow for Tree hierarchy like: acts_as_tree or acts_as_nested_set, acts_as_better_nested_set, etc. Yet, you feel something is missing. Tree's are just not good enough. You want to allow each record to have multiple parent objects within a hierarchy as well as multiple children. Then you are going to need a DAG instead of a tree, and thats were this plugin becomes useful.
 
-Version 1.1.1 tested using Rails 2.3.8 and Ruby 1.9.2-p0.
+Version 1.1.2 tested using Rails 2.3.8 and Ruby 1.9.2-p0 and Ruby 1.8.x.
 
 Version 2.0.x tested using Rails 3.0.0 and Ruby 1.9.2-p0, without major structural changes to code from the Rails 3 framework. Removes all deprecation warnings I have received while using AAD and Rails 3.0.0.
 
-Version 2.5.0 is based on Rails 3.0.0 and uses all of the new ActiveModel/ActiveRecord goodness found there.
+Version 2.5.3 is based on Rails 3.0.0 and uses all of the new ActiveModel/ActiveRecord goodness found there.
 
 === What's a DAG?
 
