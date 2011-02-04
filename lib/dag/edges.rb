@@ -82,7 +82,7 @@ module Dag
     def longest_path_between(ancestor, descendant, path=[])
       longest = []
       ancestor.children.each do |child|
-        if child == descendent
+        if child == descendant
           temp = path.clone
           temp << child
           if temp.length > longest.length
@@ -98,6 +98,28 @@ module Dag
         end
       end
       longest
+    end
+
+    #Finds the shortest path between ancestor and descendant returning as an array
+    def shortest_path_between(ancestor, descendant, path=[])
+      shortest = []
+      ancestor.children.each do |child|
+        if child == descendant
+          temp = path.clone
+          temp << child
+          if shortest.blank? || temp.length < shortest.length
+            shortest = temp
+          end
+        elsif self.connected?(child, descendant)
+          temp = path.clone
+          temp << child
+          temp = self.shortest_path_between(child, descendant, temp)
+          if shortest.blank? || temp.length < shortest.length
+            shortest = temp
+          end
+        end
+      end
+      return shortest
     end
 
     #Determines if an edge exists between two points
