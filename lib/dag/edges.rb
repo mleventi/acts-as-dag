@@ -243,7 +243,7 @@ module Dag
         raise ActiveRecord::ActiveRecordError, 'ERROR: cannot modify our self in this way' if edge == self
         edge.do_not_perpetuate = true
         if edge.count == 0
-          edge.destroy!
+          edge.destroy
         else
           edge.save!
         end
