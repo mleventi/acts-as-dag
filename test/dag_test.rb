@@ -842,4 +842,14 @@ class DagTest < Test::Unit::TestCase
     assert_equal [c,d], path
   end
 
+  # Tests that perpetuate upon destroy works
+  def tests_perpetuate_upon_destroy_link
+    a = Node.create!
+    b = Node.create!
+    c = Node.create!
+    e = Default.create_edge!(a,b)
+    f = Default.create_edge!(b,c)
+    e.destroy
+  end
+
 end
