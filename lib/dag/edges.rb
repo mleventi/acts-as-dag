@@ -238,12 +238,12 @@ module Dag
 
       protected
 
-      #Changes on a wire based on the count (destroy! or save!) (should not be called outside this plugin)
+      # Changes on a wire based on the count (destroy or save!) (should not be called outside this plugin)
       def push_associated_modification!(edge)
         raise ActiveRecord::ActiveRecordError, 'ERROR: cannot modify our self in this way' if edge == self
         edge.do_not_perpetuate = true
         if edge.count == 0
-          edge.destroy!
+          edge.destroy
         else
           edge.save!
         end

@@ -1,6 +1,6 @@
 require 'test/unit'
 require 'rubygems'
-gem 'activerecord', '= 3.0.3'
+gem 'activerecord', '~> 3.0.3'
 require "./init"
 
 
@@ -840,6 +840,16 @@ class DagTest < Test::Unit::TestCase
     e = Default.create_edge(c,d)
     path = Default.shortest_path_between(a,d)
     assert_equal [c,d], path
+  end
+
+  # Tests that perpetuate upon destroy works
+  def tests_perpetuate_upon_destroy_link
+    a = Node.create!
+    b = Node.create!
+    c = Node.create!
+    e = Default.create_edge!(a,b)
+    f = Default.create_edge!(b,c)
+    e.destroy
   end
 
 end
