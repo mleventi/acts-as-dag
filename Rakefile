@@ -18,7 +18,7 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.title    = 'ActsAsDag'
   rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.rdoc_files.include('README.rdoc')
-  rdoc.rdoc_files.include('lib/active_record/acts/dag.rb')
+  rdoc.rdoc_files.include('lib/dag/dag.rb')
 end
 
 # setup to build plugin as a gem
@@ -29,7 +29,7 @@ begin
     gemspec.summary = "Acts As DAG Gem"
     gemspec.description = "Acts As Dag, short for Acts As Directed Acyclic Graph, is a gem which allows you to represent DAG hierarchy using your ActiveRecord models. Versions 1.x were built using Rails 2.x. Versions 2.x were built using Rails 3.x."
     gemspec.authors = ["Matthew Leventi", "Robert Schmitt"]
-    gemspec.email = "bob@lessonplanet.com"
+    gemspec.email = "forever@thelongterm.net"
     gemspec.rubyforge_project = "acts-as-dag"
     gemspec.homepage = "http://github.com/resgraph/acts-as-dag"
     gemspec.files = FileList["[A-Z]*", "{lib,test}/**/*"]
