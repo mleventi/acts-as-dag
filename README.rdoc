@@ -108,7 +108,7 @@ Calling acts_as_dag_links method in the class definition injects the following a
 	
 ==== Injected Named Scopes
 
-The recieves the following named scopes. The following two scopes narrows a query to only links with a certain ancestor or descendant
+The receives the following named scopes. The following two scopes narrows a query to only links with a certain ancestor or descendant
 
 	named_scope :with_ancestor(ancestor_instance)
 	named_scope :with_descendant(descendant_instance)
