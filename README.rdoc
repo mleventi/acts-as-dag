@@ -252,7 +252,7 @@ This section goes over some basic usage examples and presents some caveats.
 	#Removing it
 	link = Link.find_link(parent_node,child_node)
 	if link.destroyable?
-		link.destory
+		link.destroy
 	else
 		link.make_indirect
 		link.save!
