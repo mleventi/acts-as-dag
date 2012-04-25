@@ -18,7 +18,6 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_paths = ["lib"]
 
-  s.add_development_dependency 'jeweler'
   # As specified in test/dag_test.rb
   s.add_development_dependency 'activerecord', '~> 3.0.3'
   s.add_development_dependency 'sqlite3'

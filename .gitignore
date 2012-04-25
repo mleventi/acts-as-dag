@@ -1,5 +1,7 @@
 .idea/*
 *.gem
 .rvmrc
+.bundle
+Gemfile.lock
 pkg/*
 test/database.test
