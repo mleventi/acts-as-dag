@@ -4,4 +4,5 @@
 .bundle
 Gemfile.lock
 pkg/*
+rdoc
 test/database.test
