@@ -70,6 +70,7 @@ class DagTest < Test::Unit::TestCase
 
   #Setups up database in memory
   def setup
+    ActiveRecord::Migration.verbose = false
     ActiveRecord::Schema.define(:version => 1) do
       create_table :edges do |t|
         t.column :ancestor_id, :integer
