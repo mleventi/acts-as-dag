@@ -593,6 +593,14 @@ class DagTest < Test::Unit::TestCase
     assert !e.nil?
   end
 
+  #Tests self_and_descendants
+  def test_self_and_descendants
+    a = Node.create!(:name => 'a')
+    b = Node.create!(:name => 'b')
+    a.descendants << b
+    assert_equal [a,b], a.self_and_descendants
+  end
+
   #Tests has_many ancestors
   def test_has_many_ancestors
     a = Node.create!
@@ -600,6 +608,14 @@ class DagTest < Test::Unit::TestCase
     b.ancestors << a
     e = Default.find_link(a, b)
     assert !e.nil?
+  end
+
+  #Tests self_and_ancestors
+  def test_self_and_ancestors
+    a = Node.create!
+    b = Node.create!
+    b.ancestors << a
+    assert_equal [b,a], b.self_and_ancestors
   end
 
   #Tests has_many children
