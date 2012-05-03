@@ -284,6 +284,13 @@ module Dag
       EOL4
     end
     self.class_eval <<-EOL5
+            def #{prefix}self_and_ancestors
+              [self] + #{prefix}ancestors
+            end
+            def #{prefix}self_and_descendants
+              [self] + #{prefix}descendants
+            end
+            
             def #{prefix}leaf?
               self.#{prefix}links_as_ancestor.empty?
 						end
