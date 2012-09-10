@@ -81,7 +81,7 @@ With polymorphic graphs we also have...
 
 Each of the optional column parameters needs a field in the link table. Hence for non-polymorphic graphs a migration would look like...
 
-    create_table :links, do |t|
+    create_table :links do |t|
         t.integer :ancestor_id
         t.integer :descendant_id
         t.boolean :direct
@@ -90,7 +90,7 @@ Each of the optional column parameters needs a field in the link table. Hence fo
     
 And for polymorphic graphs...
 
-    create_table :links, do |t|
+    create_table :links do |t|
         t.integer :ancestor_id
         t.string  :ancestor_type
         t.integer :descendant_id
