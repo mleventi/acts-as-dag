@@ -8,8 +8,8 @@ Gem::Specification.new do |s|
   s.authors     = ['Matthew Leventi', 'Robert Schmitt']
   s.email       = ["resgraph@cox.net"]
   s.homepage    = 'https://github.com/resgraph/acts-as-dag'
-  s.summary     = %q{Directed Acyclic Graph hierarchy for Rail's ActiveRecord model}
-  s.description = %q{Directed Acyclic Graph hierarchy for Rail's ActiveRecord model}
+  s.summary     = %q{Directed Acyclic Graph hierarchy for Rail's ActiveRecord}
+  s.description = %q{Directed Acyclic Graph hierarchy for Rail's ActiveRecord}
 
   s.rubyforge_project = "acts-as-dag"
 
