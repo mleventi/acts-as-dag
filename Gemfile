@@ -1,8 +1,8 @@
 source 'http://rubygems.org'
 
 gem 'bundler'
-gem 'rails', '3.2.3'
 gem 'rake'
+gem 'rails', '3.2.8'
 gem 'rack'
 gem 'jeweler'
 gem 'sqlite3'

@@ -1,6 +1,6 @@
 require 'test/unit'
 require 'rubygems'
-gem 'activerecord', '~> 3.0.3'
+gem 'activerecord', '~> 3.2.8'
 require "./init"
 
 
@@ -9,13 +9,13 @@ ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => "#{F
 #Used for basic graph link testing
 class Default < ActiveRecord::Base
   acts_as_dag_links :node_class_name => 'Node'
-  set_table_name 'edges'
+  self.table_name = 'edges'
 end
 
 #Used for polymorphic graph link testing
 class Poly < ActiveRecord::Base
   acts_as_dag_links :polymorphic => true
-  set_table_name 'poly_edges'
+  self.table_name = 'poly_edges'
 end
 
 #Used for redefinition testing
@@ -25,43 +25,43 @@ class Redefiner < ActiveRecord::Base
                     :count_column => 'c',
                     :ancestor_id_column => 'foo_id',
                     :descendant_id_column => 'bar_id'
-  set_table_name 'edges2'
+  self.table_name = 'edges2'
 end
 
 class Node < ActiveRecord::Base
   has_dag_links :link_class_name => 'Default'
-  set_table_name 'nodes'
+  self.table_name = 'nodes'
 end
 
 class RedefNode < ActiveRecord::Base
   has_dag_links :link_class_name => 'Redefiner'
-  set_table_name 'redef_nodes'
+  self.table_name = 'redef_nodes'
 end
 
 class AlphaNode < ActiveRecord::Base
   has_dag_links :link_class_name => 'Poly',
                 :descendant_class_names => ['BetaNode', 'GammaNode', 'ZetaNode']
-  set_table_name 'alpha_nodes'
+  self.table_name = 'alpha_nodes'
 end
 
 class BetaNode < ActiveRecord::Base
   has_dag_links :link_class_name => 'Poly',
                 :ancestor_class_names => ['AlphaNode', 'BetaNode'],
                 :descendant_class_names => ['BetaNode', 'GammaNode', 'ZetaNode']
-  set_table_name 'beta_nodes'
+  self.table_name = 'beta_nodes'
 end
 
 class GammaNode < ActiveRecord::Base
   has_dag_links :link_class_name => 'Poly',
                 :ancestor_class_names => ['AlphaNode', 'BetaNode', 'GammaNode'],
                 :descendant_class_names => ['GammaNode', 'ZetaNode']
-  set_table_name 'gamma_nodes'
+  self.table_name = 'gamma_nodes'
 end
 
 class ZetaNode < ActiveRecord::Base
   has_dag_links :link_class_name => 'Poly',
                 :ancestor_class_names => ['AlphaNode', 'BetaNode', 'GammaNode']
-  set_table_name 'zeta_nodes'
+  self.table_name = 'zeta_nodes'
 end
 
 
