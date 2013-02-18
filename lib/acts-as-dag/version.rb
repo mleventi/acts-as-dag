@@ -1,7 +1,7 @@
 module Acts
   module As
     module Dag
-      VERSION = "2.5.7"
+      VERSION = "3.0.0"
     end
   end
 end

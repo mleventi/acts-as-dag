@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # As specified in test/dag_test.rb
-  s.add_development_dependency 'activerecord', '~> 3.0.3'
+  s.add_development_dependency 'activerecord', '~> 3.2.12'
   s.add_development_dependency 'rake'
   s.add_development_dependency 'sqlite3'
   s.add_runtime_dependency 'activemodel'
