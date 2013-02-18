@@ -12,6 +12,8 @@ Version 2.0.x tested using Rails 3.0.0 and Ruby 1.9.2-p0, without major structur
 
 Version 2.5.3 is based on Rails 3.0.0 and uses all of the new ActiveModel/ActiveRecord goodness found there.
 
+Version 3.0.0 is based on Rails 3.2.12 and tested against Ruby 1.9.3-p385. 3.0.0 fixes issues with the ActiveRecord method connected? being overwritten by acts-as-dag. Thanks to Ryan Glover (@ersatzryan) for the patch.
+
 === What's a DAG?
 
 http://en.wikipedia.org/wiki/Directed_acyclic_graph
