@@ -869,4 +869,11 @@ class DagTest < Test::Unit::TestCase
     e.destroy
   end
 
+  def test_connected?
+    a = Node.create!
+    b = Node.create!
+    c = Node.create!
+    e = ::Dag::Edges.build_edge(a,b)
+    e.connected?(a,c)
+  end
 end
