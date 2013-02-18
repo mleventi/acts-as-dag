@@ -509,34 +509,6 @@ class DagTest < Test::Unit::TestCase
     assert_nil testnil
   end
 
-  #Tests class method connect
-  def test_manual_connect_lonely_edge
-    a = Node.create!
-    b = Node.create!
-    e = Default.connect!(a, b)
-    e2 = Default.find_edge(a, b)
-    assert e2.direct?
-    assert_equal 1, e2.count
-    assert_equal e, e2
-    assert_equal e2.ancestor, a
-    assert_equal e2.descendant, b
-  end
-
-  #Tests simple indirect link creation
-  def test_auto_simple_cross
-    a = Node.create!
-    b = Node.create!
-    c = Node.create!
-    e = Default.connect(a, b)
-    e2 = Default.connect(b, c)
-    indirect = Default.find_link(a, c)
-    assert !indirect.nil?
-    assert !indirect.direct?
-    assert_equal 1, indirect.count
-    assert_equal a, indirect.ancestor
-    assert_equal c, indirect.descendant
-  end
-
   ##########################
   #TESTS FOR has_dag_links #
   ##########################
