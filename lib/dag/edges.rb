@@ -63,21 +63,6 @@ module Dag
       end
     end
 
-    #Alias for create_edge
-    def connect(ancestor, descendant)
-      self.create_edge(ancestor, descendant)
-    end
-
-    #Alias for create_edge!
-    def connect!(ancestor, descendant)
-      self.create_edge!(ancestor, descendant)
-    end
-
-    #Determines if a link exists between two points
-    def connected?(ancestor, descendant)
-      !self.find_link(ancestor, descendant).nil?
-    end
-
     #Finds the longest path between ancestor and descendant returning as an array
     def longest_path_between(ancestor, descendant, path=[])
       longest = []
@@ -88,7 +73,7 @@ module Dag
           if temp.length > longest.length
             longest = temp
           end
-        elsif self.connected?(child, descendant)
+        elsif self.find_link(child, descendant)
           temp = path.clone
           temp << child
           temp = self.longest_path_between(child, descendant, temp)
@@ -110,7 +95,7 @@ module Dag
           if shortest.blank? || temp.length < shortest.length
             shortest = temp
           end
-        elsif self.connected?(child, descendant)
+        elsif self.find_link(child, descendant)
           temp = path.clone
           temp << child
           temp = self.shortest_path_between(child, descendant, temp)
