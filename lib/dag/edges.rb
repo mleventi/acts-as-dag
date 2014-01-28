@@ -20,14 +20,14 @@ module Dag
     def find_edge(ancestor, descendant)
       source = self::EndPoint.from(ancestor)
       sink = self::EndPoint.from(descendant)
-      self.first :conditions => self.conditions_for(source, sink).merge!({direct_column_name => true})
+      self.where(self.conditions_for(source, sink).merge!({direct_column_name => true})).first
     end
 
     #Finds a link between two points
     def find_link(ancestor, descendant)
       source = self::EndPoint.from(ancestor)
       sink = self::EndPoint.from(descendant)
-      self.first :conditions => self.conditions_for(source, sink)
+      self.where(self.conditions_for(source, sink)).first
     end
 
     #Finds or builds an edge between two points
