@@ -96,12 +96,8 @@ module Dag
     scope :direct, lambda { where(:direct => true) }
     scope :indirect, lambda { where(:direct => false) }
 
-    def ancestor_nodes
-      joins(:ancestor)
-    end
-    def descendant_nodes
-      joins(:descendant)
-    end
+    scope :ancestor_nodes, lambda { joins(:ancestor) }
+    scope :descendant_nodes, lambda { joins(:descendant) }
 
     validates ancestor_id_column_name.to_sym, :presence => true,
               :numericality => true
