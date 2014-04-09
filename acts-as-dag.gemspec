@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.email       = ["resgraph@cox.net"]
   s.homepage    = 'https://github.com/resgraph/acts-as-dag'
   s.summary     = %q{Directed Acyclic Graph hierarchy for Rail's ActiveRecord}
-  s.description = %q{Directed Acyclic Graph hierarchy for Rail's ActiveRecord}
+  s.description = %q{Directed Acyclic Graph hierarchy for Rail's ActiveRecord, supporting Rails 4.x}
 
   s.rubyforge_project = "acts-as-dag"
 
@@ -19,9 +19,8 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # As specified in test/dag_test.rb
-  s.add_development_dependency 'activerecord', '~> 3.2.12'
   s.add_development_dependency 'rake'
   s.add_development_dependency 'sqlite3'
   s.add_runtime_dependency 'activemodel'
-  s.add_runtime_dependency 'activerecord'
+  s.add_runtime_dependency 'activerecord', '~> 4.0', '>= 4.0.0'
 end
