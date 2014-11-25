@@ -99,10 +99,8 @@ module Dag
     scope :ancestor_nodes, lambda { joins(:ancestor) }
     scope :descendant_nodes, lambda { joins(:descendant) }
 
-    validates ancestor_id_column_name.to_sym, :presence => true,
-              :numericality => true
-    validates descendant_id_column_name.to_sym, :presence => true,
-              :numericality => true
+    validates :ancestor, :presence => true
+    validates :descendant, :presence => true
 
     extend Edges
     include Edges
@@ -274,8 +272,8 @@ module Dag
               has_many :#{prefix}ancestors, :through => :#{prefix}links_as_descendant, :source => :ancestor
               has_many :#{prefix}descendants, :through => :#{prefix}links_as_ancestor, :source => :descendant
 
-              has_many :#{prefix}links_as_parent, lambda { where('#{dag_link_class.direct_column_name}' => true) }, :foreign_key => '#{dag_link_class.ancestor_id_column_name}', :class_name => '#{dag_link_class_name}'
-              has_many :#{prefix}links_as_child, lambda { where('#{dag_link_class.direct_column_name}' => true) }, :foreign_key => '#{dag_link_class.descendant_id_column_name}', :class_name => '#{dag_link_class_name}'
+              has_many :#{prefix}links_as_parent, lambda { where('#{dag_link_class.direct_column_name}' => true) }, :foreign_key => '#{dag_link_class.ancestor_id_column_name}', :class_name => '#{dag_link_class_name}', :inverse_of => :ancestor
+              has_many :#{prefix}links_as_child, lambda { where('#{dag_link_class.direct_column_name}' => true) }, :foreign_key => '#{dag_link_class.descendant_id_column_name}', :class_name => '#{dag_link_class_name}', :inverse_of => :descendant
 
               has_many :#{prefix}parents, :through => :#{prefix}links_as_child, :source => :ancestor
               has_many :#{prefix}children, :through => :#{prefix}links_as_parent, :source => :descendant

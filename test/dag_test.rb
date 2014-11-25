@@ -1,6 +1,5 @@
-require 'test/unit'
-require 'rubygems'
-gem 'activerecord', '~> 4.1.0'
+require 'minitest/autorun'
+require 'active_record'
 require "./init"
 I18n.enforce_available_locales = true
 
@@ -66,7 +65,7 @@ end
 
 
 #Unit Tests for the DAG plugin
-class DagTest < Test::Unit::TestCase
+class DagTest < Minitest::Test
 
   #Setups up database in memory
   def setup
@@ -607,6 +606,13 @@ class DagTest < Test::Unit::TestCase
     b.parents << a
     e = Default.find_link(a, b)
     assert !e.nil?
+  end
+
+  def test_has_many_parents_build_assign
+    a = Node.create!
+    b = Node.new
+    b.parents << a
+    assert b.valid?, b.errors.full_messages
   end
 
   #Tests leaf? instance method
