@@ -1,6 +1,6 @@
-require 'rake'
 require 'rake/testtask'
-require 'rake/rdoctask'
+require 'rdoc/task'
+require 'bundler/gem_tasks'
 
 desc 'Default: run unit tests.'
 task :default => :test
@@ -18,5 +18,6 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.title    = 'ActsAsDag'
   rdoc.options << '--line-numbers' << '--inline-source'
   rdoc.rdoc_files.include('README.rdoc')
-  rdoc.rdoc_files.include('lib/active_record/acts/dag.rb')
+  rdoc.rdoc_files.include('lib/dag/dag.rb')
 end
+
